@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import geopandas as gpd
 import folium
-from folium.plugins import FeatureGroupSubGroup
 import requests
 import os
 
@@ -60,34 +59,222 @@ def gerar_grafico_2(df, tipo_analise):
     plt.savefig(f'grafico_2_linhas_dia_hora_feminino_{tipo_analise.lower().replace(" ", "_")}.png')
     plt.show()
 
-def gerar_graficos_4a_e_4b(df_completo, mapeamento_genero):
-    """Gera os Gráficos 4a e 4b: Comparativo por tipo de crime (escala log e proporção)."""
+def gerar_graficos_3a_e_3b(df_completo, mapeamento_genero):
+    """Gera os Gráficos 3a e 3b: Comparativo por tipo de crime (escala log e proporção)."""
     print("\nPreparando dados para os gráficos comparativos por tipo de crime...")
     df_completo['GENERO_AGRUPADO'] = df_completo['GENERO'].map(mapeamento_genero)
     df_crimes_filtrado = df_completo.dropna(subset=['GENERO_AGRUPADO', 'NATUREZA'])
     crimes_por_natureza_genero = df_crimes_filtrado.groupby(['NATUREZA', 'GENERO_AGRUPADO']).size().reset_index(name='QUANTIDADE')
-    # Gráfico 4a
-    print("Gerando Gráfico 4a: Comparativo com Escala Logarítmica...")
+    # Gráfico 3a
+    print("Gerando Gráfico 3a: Comparativo com Escala Logarítmica...")
     plt.figure()
     barplot = sns.barplot(data=crimes_por_natureza_genero, x='NATUREZA', y='QUANTIDADE', hue='GENERO_AGRUPADO')
     barplot.set_yscale("log")
-    plt.title('Gráfico 4a: Quantidade de Vítimas por Tipo de Crime (Escala Logarítmica)')
+    plt.title('Gráfico 3a: Quantidade de Vítimas por Tipo de Crime (Escala Logarítmica)')
     plt.xlabel('Tipo de Crime (Natureza)'); plt.ylabel('Quantidade Total de Vítimas (Escala Log)'); plt.legend(title='Gênero')
     plt.xticks(rotation=45, ha='right'); plt.tight_layout()
-    plt.savefig('grafico_4a_comparativo_escala_log.png'); plt.show()
-    # Gráfico 4b
-    print("Gerando Gráfico 4b: Análise de Proporção de Gênero por Tipo de Crime...")
+    plt.savefig('grafico_3a_comparativo_escala_log.png'); plt.show()
+    # Gráfico 3b
+    print("Gerando Gráfico 3b: Análise de Proporção de Gênero por Tipo de Crime...")
     total_por_natureza = crimes_por_natureza_genero.groupby('NATUREZA')['QUANTIDADE'].transform('sum')
     crimes_por_natureza_genero['PROPORCAO_%'] = (crimes_por_natureza_genero['QUANTIDADE'] / total_por_natureza) * 100
     df_pivot = crimes_por_natureza_genero.pivot(index='NATUREZA', columns='GENERO_AGRUPADO', values='PROPORCAO_%')
     df_pivot.plot(kind='barh', stacked=True, figsize=(16, 10), colormap='viridis')
-    plt.title('Gráfico 4b: Proporção de Gênero em Cada Tipo de Crime')
+    plt.title('Gráfico 3b: Proporção de Gênero em Cada Tipo de Crime')
     plt.xlabel('Porcentagem (%)'); plt.ylabel('Tipo de Crime (Natureza)'); plt.legend(title='Gênero', bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.xlim(0, 100)
     for container in plt.gca().containers:
         plt.gca().bar_label(container, fmt='%.1f%%', label_type='center', color='white', fontsize=10, fontweight='bold')
-    plt.tight_layout(); plt.savefig('grafico_4b_comparativo_proporcao.png'); plt.show()
-# --- FUNÇÃO DE ANÁLISE GEOGRÁFICA (IMPLEMENTADA) ---
+    plt.tight_layout(); plt.savefig('grafico_3b_comparativo_proporcao.png'); plt.show()
+
+def gerar_grafico_4(df, tipo_analise):
+    """Gera um gráfico de barras da distribuição de vítimas por raça/cor."""
+    print(f"\nGerando Gráfico 4: Análise de Vítimas por Raça/Cor para '{tipo_analise}'...")
+    
+    # Limpa os dados, removendo entradas não informadas
+    df_raca = df[df['RACA_VITIMA'] != 'NÃO INFORMADA'].copy()
+    
+    if df_raca.empty:
+        print("Não há dados válidos de raça/cor para gerar este gráfico.")
+        return
+        
+    # Agrupa por raça e conta as ocorrências
+    contagem_raca = df_raca['RACA_VITIMA'].value_counts().reset_index()
+    contagem_raca.columns = ['RACA_VITIMA', 'TOTAL']
+    
+    # Calcula a proporção
+    total_geral = contagem_raca['TOTAL'].sum()
+    contagem_raca['PROPORCAO_%'] = (contagem_raca['TOTAL'] / total_geral) * 100
+    
+    # Gera o gráfico
+    plt.figure(figsize=(12, 8))
+    barplot = sns.barplot(data=contagem_raca, x='RACA_VITIMA', y='TOTAL', palette='viridis')
+    
+    # Adiciona os rótulos (número absoluto e porcentagem) em cima das barras
+    for index, row in contagem_raca.iterrows():
+        label = f"{row['TOTAL']}\n({row['PROPORCAO_%']:.1f}%)"
+        barplot.text(index, row['TOTAL'] + (total_geral * 0.01), label, color='black', ha="center")
+        
+    plt.title(f'Gráfico 4: Distribuição de Vítimas por Raça/Cor ({tipo_analise})')
+    plt.xlabel('Raça / Cor da Vítima')
+    plt.ylabel('Número Absoluto de Vítimas')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(f'grafico_4_distribuicao_raca_{tipo_analise.lower().replace(" ", "_")}.png')
+    plt.show()
+
+def gerar_grafico_5(df, tipo_analise):
+    """Gera o Gráfico 5: Análise do perfil etário das vítimas."""
+    print(f"\nGerando Gráfico 5: Análise de Vítimas por Faixa Etária para '{tipo_analise}'...")
+    
+    # Limpa e converte a coluna de idade para numérico
+    df_idade = df.copy()
+    df_idade['IDADE_NUM'] = pd.to_numeric(df_idade['IDADE_VITIMA'], errors='coerce')
+    df_idade.dropna(subset=['IDADE_NUM'], inplace=True)
+    df_idade['IDADE_NUM'] = df_idade['IDADE_NUM'].astype(int)
+    # Filtra idades improváveis (ex: maiores que 110)
+    df_idade = df_idade[df_idade['IDADE_NUM'] <= 110]
+
+    if df_idade.empty:
+        print("Não há dados de idade válidos para gerar este gráfico.")
+        return
+
+    # Gráfico 5a: Histograma da Idade de Todas as Vítimas
+    plt.figure(figsize=(16, 8))
+    sns.histplot(data=df_idade, x='IDADE_NUM', bins=30, kde=True)
+    idade_media = df_idade['IDADE_NUM'].mean()
+    plt.axvline(idade_media, color='red', linestyle='--', linewidth=2)
+    plt.text(idade_media + 2, plt.ylim()[1] * 0.9, f'Idade Média: {idade_media:.1f} anos', color='red')
+    plt.title(f'Gráfico 5a: Distribuição da Idade das Vítimas ({tipo_analise})')
+    plt.xlabel('Idade da Vítima'); plt.ylabel('Número de Ocorrências')
+    plt.tight_layout()
+    plt.savefig(f'grafico_5a_histograma_idade_{tipo_analise.lower().replace(" ", "_")}.png')
+    plt.show()
+
+    # Gráfico 5b: Comparação da Distribuição de Idade por Gênero
+    plt.figure(figsize=(16, 8))
+    sns.kdeplot(data=df_idade, x='IDADE_NUM', hue='GENERO_AGRUPADO', fill=True, common_norm=False)
+    plt.title(f'Gráfico 5b: Comparativo da Densidade de Idade por Gênero ({tipo_analise})')
+    plt.xlabel('Idade da Vítima'); plt.ylabel('Densidade')
+    plt.tight_layout()
+    plt.savefig(f'grafico_5b_kde_idade_genero_{tipo_analise.lower().replace(" ", "_")}.png')
+    plt.show()
+
+def gerar_grafico_6(df, tipo_analise):
+    """
+    Gera o Gráfico 6: Análise do Meio Empregado, com um submenu para
+    filtrar por gênero (Todos vs. Feminino).
+    """
+    print(f"\nAnálise por Meio Empregado para '{tipo_analise}'...")
+    print("-"*50)
+    print("Escolha o filtro de gênero para esta análise:")
+    print("1 - Todos os Registros")
+    print("2 - Apenas Vítimas Femininas")
+    
+    escolha_genero = ""
+    while escolha_genero not in ["1", "2"]:
+        escolha_genero = input("Digite sua opção (1 ou 2) e pressione Enter: ")
+
+    df_filtrado = df.copy()
+    titulo_sufixo = f"({tipo_analise})" # Sufixo padrão
+
+    if escolha_genero == "2":
+        df_filtrado = df[df['GENERO_AGRUPADO'] == 'Feminino'].copy()
+        titulo_sufixo = f"({tipo_analise} - Vítimas Femininas)"
+        print("\nFiltrando dados para vítimas femininas...")
+
+    if df_filtrado.empty:
+        print("Não há dados para a seleção de gênero escolhida.")
+        return
+
+    # Limpa os dados, tratando valores nulos ou não informados
+    df_meio = df_filtrado.dropna(subset=['MEIO_EMPREGADO'])
+    df_meio = df_meio[df_meio['MEIO_EMPREGADO'] != 'NÃO INFORMADO'].copy()
+
+    if df_meio.empty:
+        print("Não há dados válidos de 'Meio Empregado' para gerar este gráfico.")
+        return
+
+    # Gráfico 6a: Proporção Geral (Gráfico de Pizza)
+    print("Gerando Gráfico 6a: Proporção Geral do Meio Empregado...")
+    contagem_meio = df_meio['MEIO_EMPREGADO'].value_counts()
+    plt.figure(figsize=(10, 10))
+    plt.pie(contagem_meio, labels=contagem_meio.index, autopct='%1.1f%%', startangle=140, colors=sns.color_palette('viridis', len(contagem_meio)))
+    plt.title(f'Gráfico 6a: Proporção Geral do Meio Empregado {titulo_sufixo}')
+    plt.ylabel('')
+    plt.tight_layout()
+    plt.savefig(f'grafico_6a_pizza_meio_empregado_{titulo_sufixo.lower().replace(" ", "_")}.png')
+    plt.show()
+
+    # Gráfico 6b: Evolução Temporal (Gráfico de Linhas)
+    print("Gerando Gráfico 6b: Evolução do Meio Empregado ao Longo dos Anos...")
+    evolucao_meio = df_meio.groupby(['ANO', 'MEIO_EMPREGADO']).size().reset_index(name='TOTAL')
+    plt.figure(figsize=(16, 9))
+    sns.lineplot(data=evolucao_meio, x='ANO', y='TOTAL', hue='MEIO_EMPREGADO', marker='o', palette='viridis')
+    plt.title(f'Gráfico 6b: Evolução do Meio Empregado ao Longo dos Anos {titulo_sufixo}')
+    plt.xlabel('Ano')
+    plt.ylabel('Número Absoluto de Ocorrências')
+    plt.legend(title='Meio Empregado')
+    plt.tight_layout()
+    plt.savefig(f'grafico_6b_evolucao_meio_empregado_{titulo_sufixo.lower().replace(" ", "_")}.png')
+    plt.show()
+
+def gerar_grafico_7(df, tipo_analise):
+    """Gera o Gráfico 7: Análise de Crimes de Ódio."""
+    print(f"\nGerando Gráfico 7: Análise de Crimes de Ódio para '{tipo_analise}'...")
+
+    # Define as naturezas dos crimes de ódio
+    naturezas_odio = ['CONDUTA HOMOFOBICA', 'CONDUTA TRANSFOBICA', 'PRECONCEITO RAÇA OU COR']
+    df_odio = df[df['NATUREZA'].isin(naturezas_odio)].copy()
+
+    if df_odio.empty:
+        print("Não foram encontrados registros de crimes de ódio para gerar esta análise.")
+        return
+
+    # --- Gráfico 7a: Evolução Temporal dos Crimes de Ódio ---
+    print("Gerando Gráfico 7a: Evolução Anual dos Crimes de Ódio...")
+    evolucao_odio = df_odio.groupby(['ANO', 'NATUREZA']).size().reset_index(name='TOTAL')
+    
+    plt.figure(figsize=(16, 9))
+    sns.lineplot(data=evolucao_odio, x='ANO', y='TOTAL', hue='NATUREZA', marker='o', palette='Set1')
+    plt.title(f'Gráfico 7a: Evolução dos Registros de Crimes de Ódio por Ano ({tipo_analise})')
+    plt.xlabel('Ano')
+    plt.ylabel('Número de Ocorrências')
+    plt.legend(title='Tipo de Crime de Ódio')
+    plt.tight_layout()
+    plt.savefig(f'grafico_7a_evolucao_crimes_odio_{tipo_analise.lower().replace(" ", "_")}.png')
+    plt.show()
+
+    # --- Gráfico 7b: Perfil da Orientação Sexual em Crimes de LGBTfobia ---
+    print("Gerando Gráfico 7b: Perfil da Orientação Sexual em Vítimas de LGBTfobia...")
+    naturezas_lgbtfobia = ['CONDUTA HOMOFOBICA', 'CONDUTA TRANSFOBICA']
+    df_lgbtfobia = df_odio[df_odio['NATUREZA'].isin(naturezas_lgbtfobia)].copy()
+    
+    # Limpa os dados de orientação sexual
+    df_lgbtfobia = df_lgbtfobia[df_lgbtfobia['ORIENTACAO_SEXUAL'] != 'NÃO INFORMADO'].copy()
+
+    if df_lgbtfobia.empty:
+        print("Não há dados válidos de orientação sexual para gerar o Gráfico 7b.")
+        return
+
+    contagem_orientacao = df_lgbtfobia['ORIENTACAO_SEXUAL'].value_counts().reset_index()
+    contagem_orientacao.columns = ['ORIENTACAO_SEXUAL', 'TOTAL']
+
+    plt.figure(figsize=(12, 8))
+    barplot = sns.barplot(data=contagem_orientacao, x='ORIENTACAO_SEXUAL', y='TOTAL', palette='coolwarm')
+    
+    # Adiciona os rótulos com os números absolutos
+    for index, row in contagem_orientacao.iterrows():
+        barplot.text(index, row['TOTAL'] + (contagem_orientacao['TOTAL'].max() * 0.01), row['TOTAL'], color='black', ha="center")
+
+    plt.title(f'Gráfico 7b: Perfil da Orientação Sexual em Vítimas de LGBTfobia ({tipo_analise})')
+    plt.xlabel('Orientação Sexual da Vítima')
+    plt.ylabel('Número Absoluto de Vítimas')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(f'grafico_7b_perfil_orientacao_sexual_{tipo_analise.lower().replace(" ", "_")}.png')
+    plt.show()
+
 def executar_analise_geografica(df_crimes):
     """
     Gera mapas interativos individuais para cada tipo de crime,
@@ -226,6 +413,7 @@ def executar_analise_geografica(df_crimes):
     folium.LayerControl(collapsed=False).add_to(mapa_ais)
     mapa_ais.save("mapa_ais.html")
     print("Sucesso! O arquivo 'mapa_ais.html' foi criado.")
+
 if __name__ == "__main__":
     try:
         df_crimes_original = pd.read_csv('crimes.csv', sep=',')
@@ -238,17 +426,19 @@ if __name__ == "__main__":
         'ESCOLARIDADE_VITIMA', 'RACA_VITIMA'
     ]
 
+    # --- MENU PRINCIPAL ---
     print("Bem-vindo à ferramenta de análise criminal do Ceará.")
     print("="*50)
     print("MENU PRINCIPAL: Escolha o tipo de análise que deseja realizar:")
     print("1 - Análise de Gráficos (Foco em Homicídios)")
     print("2 - Análise de Gráficos (Todos os Crimes)")
-    print("3 - Análise Geográfica (Mapa Interativo por Municípios)")
+    print("3 - Análise Geográfica (Mapa de Taxa de Crimes)")
     
     escolha_principal = ""
     while escolha_principal not in ["1", "2", "3"]:
         escolha_principal = input("Digite sua opção (1, 2 ou 3) e pressione Enter: ")
 
+    # --- LÓGICA BASEADA NA ESCOLHA PRINCIPAL ---
     if escolha_principal in ["1", "2"]:
         if escolha_principal == "1":
             tipo_analise = "Homicídios"
@@ -266,28 +456,132 @@ if __name__ == "__main__":
         df_para_analise.dropna(subset=['ANO'], inplace=True)
         df_para_analise['ANO'] = df_para_analise['ANO'].astype(int)
 
+        # --- MENU DE GRÁFICOS ATUALIZADO ---
         print("\n" + "="*50)
         print("MENU DE GRÁFICOS: Qual gráfico você deseja gerar?")
         print("1 - Gráfico 1 (Evolução Anual por Gênero)")
         print("2 - Gráfico 2 (Análise de Crimes contra Mulheres por Dia/Hora)")
-        print("3 - Gráficos 4a e 4b (Comparativo por Tipo de Crime)")
-        print("4 - TODOS os gráficos")
+        print("3 - Gráficos 3a e 3b (Comparativo por Tipo de Crime)")
+        print("4 - Gráfico 4 (Análise por Raça/Cor da Vítima)")
+        print("5 - Gráfico 5 (Análise por Faixa Etária da Vítima)")
+        print("6 - Gráfico 6 (Análise por Meio Empregado)")
+        print("7 - Gráfico 7 (Análise de Crimes de Ódio)") # Nova opção
+        print("8 - TODOS os gráficos") # Opção atualizada
         
         escolha_grafico = ""
-        while escolha_grafico not in ["1", "2", "3", "4"]:
-            escolha_grafico = input("Digite sua opção (1, 2, 3 ou 4) e pressione Enter: ")
+        while escolha_grafico not in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+            escolha_grafico = input("Digite sua opção (1 a 8) e pressione Enter: ")
 
         if escolha_grafico == "1":
             gerar_grafico_1(df_para_analise, tipo_analise)
         elif escolha_grafico == "2":
             gerar_grafico_2(df_para_analise, tipo_analise)
         elif escolha_grafico == "3":
-            gerar_graficos_4a_e_4b(df_crimes_original, mapeamento_genero)
+            gerar_graficos_3a_e_3b(df_crimes_original, mapeamento_genero)
         elif escolha_grafico == "4":
+            gerar_grafico_4(df_para_analise, tipo_analise)
+        elif escolha_grafico == "5":
+            gerar_grafico_5(df_para_analise, tipo_analise)
+        elif escolha_grafico == "6":
+            gerar_grafico_6(df_para_analise, tipo_analise)
+        elif escolha_grafico == "7":
+            gerar_grafico_7(df_para_analise, tipo_analise) # Chamada da nova função
+        elif escolha_grafico == "8":
             print("\nGerando TODOS os gráficos...")
             gerar_grafico_1(df_para_analise, tipo_analise)
             gerar_grafico_2(df_para_analise, tipo_analise)
-            gerar_graficos_4a_e_4b(df_crimes_original, mapeamento_genero)
+            gerar_graficos_3a_e_3b(df_crimes_original, mapeamento_genero)
+            gerar_grafico_4(df_para_analise, tipo_analise)
+            gerar_grafico_5(df_para_analise, tipo_analise)
+            gerar_grafico_6(df_para_analise, tipo_analise)
+            gerar_grafico_7(df_para_analise, tipo_analise)
+
+    elif escolha_principal == "3":
+        executar_analise_geografica(df_crimes_original)
+
+    print("\nOperação concluída com sucesso!")
+
+    try:
+        df_crimes_original = pd.read_csv('crimes.csv', sep=',')
+    except FileNotFoundError:
+        print("Erro: Arquivo 'crimes.csv' não encontrado."); exit()
+    
+    df_crimes_original.columns = [
+        'AIS', 'NATUREZA', 'MUNICIPIO', 'LOCAL', 'DATA', 'HORA', 'DIA_SEMANA',
+        'MEIO_EMPREGADO', 'GENERO', 'ORIENTACAO_SEXUAL', 'IDADE_VITIMA',
+        'ESCOLARIDADE_VITIMA', 'RACA_VITIMA'
+    ]
+
+    # --- MENU PRINCIPAL ---
+    print("Bem-vindo à ferramenta de análise criminal do Ceará.")
+    print("="*50)
+    print("MENU PRINCIPAL: Escolha o tipo de análise que deseja realizar:")
+    print("1 - Análise de Gráficos (Foco em Homicídios)")
+    print("2 - Análise de Gráficos (Todos os Crimes)")
+    print("3 - Análise Geográfica (Mapa de Taxa de Crimes)")
+    
+    escolha_principal = ""
+    while escolha_principal not in ["1", "2", "3"]:
+        escolha_principal = input("Digite sua opção (1, 2 ou 3) e pressione Enter: ")
+
+    # --- LÓGICA BASEADA NA ESCOLHA PRINCIPAL ---
+    if escolha_principal in ["1", "2"]:
+        if escolha_principal == "1":
+            tipo_analise = "Homicídios"
+            naturezas_filtro = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
+            df_para_analise = df_crimes_original[df_crimes_original['NATUREZA'].isin(naturezas_filtro)].copy()
+        else:
+            tipo_analise = "Todos os Crimes Registrados"
+            df_para_analise = df_crimes_original.copy()
+
+        mapeamento_genero = {'Masculino': 'Masculino', 'Homem Trans': 'Masculino', 'Feminino': 'Feminino', 'Mulher Trans': 'Feminino', 'Travesti': 'Feminino'}
+        df_para_analise['GENERO_AGRUPADO'] = df_para_analise['GENERO'].map(mapeamento_genero)
+        df_para_analise.dropna(subset=['GENERO_AGRUPADO'], inplace=True)
+        df_para_analise['DATA'] = pd.to_datetime(df_para_analise['DATA'], dayfirst=True, errors='coerce')
+        df_para_analise['ANO'] = df_para_analise['DATA'].dt.year
+        df_para_analise.dropna(subset=['ANO'], inplace=True)
+        df_para_analise['ANO'] = df_para_analise['ANO'].astype(int)
+
+        # --- MENU DE GRÁFICOS ATUALIZADO ---
+        print("\n" + "="*50)
+        print("MENU DE GRÁFICOS: Qual gráfico você deseja gerar?")
+        print("1 - Gráfico 1 (Evolução Anual por Gênero)")
+        print("2 - Gráfico 2 (Análise de Crimes contra Mulheres por Dia/Hora)")
+        print("3 - Gráficos 3a e 3b (Comparativo por Tipo de Crime)")
+        print("4 - Gráfico 4 (Análise por Raça/Cor da Vítima)")
+        print("5 - Gráfico 5 (Análise por Faixa Etária da Vítima)")
+        print("6 - Gráfico 6 (Análise por Meio Empregado)")
+        print("7 - TODOS os gráficos")
+        
+        escolha_grafico = ""
+        while escolha_grafico not in ["1", "2", "3", "4", "5", "6", "7"]:
+            escolha_grafico = input("Digite sua opção (1 a 7) e pressione Enter: ")
+
+        if escolha_grafico == "1":
+            gerar_grafico_1(df_para_analise, tipo_analise)
+        elif escolha_grafico == "2":
+            gerar_grafico_2(df_para_analise, tipo_analise)
+        elif escolha_grafico == "3":
+            gerar_graficos_3a_e_3b(df_crimes_original, mapeamento_genero)
+        elif escolha_grafico == "4":
+            gerar_grafico_4(df_para_analise, tipo_analise)
+        elif escolha_grafico == "5":
+            gerar_grafico_5(df_para_analise, tipo_analise)
+        elif escolha_grafico == "6":
+            gerar_grafico_6(df_para_analise, tipo_analise)
+        elif escolha_grafico == "7":
+            print("\nGerando TODOS os gráficos...")
+            gerar_grafico_1(df_para_analise, tipo_analise)
+            gerar_grafico_2(df_para_analise, tipo_analise)
+            gerar_graficos_3a_e_3b(df_crimes_original, mapeamento_genero)
+            gerar_grafico_4(df_para_analise, tipo_analise)
+            gerar_grafico_5(df_para_analise, tipo_analise)
+            print("\n--- Gerando Gráfico 6 para Todos os Registros ---")
+            gerar_grafico_6(df_para_analise, tipo_analise)
+            print("\n--- Gerando Gráfico 6 para Apenas Vítimas Femininas ---")
+            df_feminino_analise = df_para_analise[df_para_analise['GENERO_AGRUPADO'] == 'Feminino']
+            gerar_grafico_6(df_feminino_analise, tipo_analise)
+
 
     elif escolha_principal == "3":
         executar_analise_geografica(df_crimes_original)
