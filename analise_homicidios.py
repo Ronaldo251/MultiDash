@@ -67,32 +67,17 @@ def projetar_ano_corrente(df, coluna_grupo):
     return df_analise
 # 3. FUNÇÕES DE GERAÇÃO DE GRÁFICOS (sem alterações)
 def gerar_grafico_1(df, tipo_analise):
-    """Gera o Gráfico 1: Evolução anual do número de crimes por gênero, com projeção."""
+    """Gera o Gráfico 1: Evolução anual do número de crimes por gênero."""
     print(f"\nGerando Gráfico 1: Evolução do Número Absoluto de '{tipo_analise}'...")
-    
-    # Aplica a projeção para o ano corrente
-    df_analise_anual = projetar_ano_corrente(df, 'GENERO_AGRUPADO')
+    df_analise_anual = df.groupby(['ANO', 'GENERO_AGRUPADO']).size().reset_index(name='TOTAL')
     df_analise_anual.rename(columns={'GENERO_AGRUPADO': 'GENERO'}, inplace=True)
-
-    ano_maximo = df['ANO'].max()
-
     plt.figure()
-    # Plota todos os anos, exceto o último
-    sns.lineplot(data=df_analise_anual[df_analise_anual['ANO'] < ano_maximo], x='ANO', y='TOTAL', hue='GENERO', marker='o')
-    
-    # Plota o último ano (projetado) com um marcador diferente
-    df_projetado = df_analise_anual[df_analise_anual['ANO'] == ano_maximo]
-    sns.lineplot(data=df_projetado, x='ANO', y='TOTAL', hue='GENERO', marker='X', markersize=10, legend=False)
-
+    sns.lineplot(data=df_analise_anual, x='ANO', y='TOTAL', hue='GENERO', marker='o')
     plt.title(f'Gráfico 1: Evolução do Número Absoluto de {tipo_analise} no Ceará')
     plt.xlabel('Ano')
     plt.ylabel(f'Número Total de Ocorrências ({tipo_analise})')
     plt.legend(title='Gênero')
-    
-    # Adiciona nota sobre a projeção
-    plt.figtext(0.99, 0.01, f'*Dado de {ano_maximo} é uma projeção anualizada.', horizontalalignment='right', style='italic', fontsize=10)
-    
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Ajusta o layout para a nota de rodapé
+    plt.tight_layout()
     plt.savefig(f'grafico_1_evolucao_{tipo_analise.lower().replace(" ", "_")}.png')
     plt.show()
 
@@ -234,7 +219,7 @@ def gerar_grafico_6(df, tipo_analise):
         escolha_genero = input("Digite sua opção (1 ou 2) e pressione Enter: ")
 
     df_filtrado = df.copy()
-    titulo_sufixo = f"({tipo_analise})"
+    titulo_sufixo = f"({tipo_analise})" # Sufixo padrão
 
     if escolha_genero == "2":
         df_filtrado = df[df['GENERO_AGRUPADO'] == 'Feminino'].copy()
@@ -242,37 +227,38 @@ def gerar_grafico_6(df, tipo_analise):
         print("\nFiltrando dados para vítimas femininas...")
 
     if df_filtrado.empty:
-        print("Não há dados para a seleção de gênero escolhida."); return
+        print("Não há dados para a seleção de gênero escolhida.")
+        return
 
+    # Limpa os dados, tratando valores nulos ou não informados
     df_meio = df_filtrado.dropna(subset=['MEIO_EMPREGADO'])
     df_meio = df_meio[df_meio['MEIO_EMPREGADO'] != 'NÃO INFORMADO'].copy()
 
     if df_meio.empty:
-        print("Não há dados válidos de 'Meio Empregado' para gerar este gráfico."); return
+        print("Não há dados válidos de 'Meio Empregado' para gerar este gráfico.")
+        return
 
-    # Gráfico 6a (Pizza) - não muda
+    # Gráfico 6a: Proporção Geral (Gráfico de Pizza)
     print("Gerando Gráfico 6a: Proporção Geral do Meio Empregado...")
     contagem_meio = df_meio['MEIO_EMPREGADO'].value_counts()
     plt.figure(figsize=(10, 10))
     plt.pie(contagem_meio, labels=contagem_meio.index, autopct='%1.1f%%', startangle=140, colors=sns.color_palette('viridis', len(contagem_meio)))
     plt.title(f'Gráfico 6a: Proporção Geral do Meio Empregado {titulo_sufixo}')
-    plt.ylabel(''); plt.tight_layout()
-    plt.savefig(f'grafico_6a_pizza_meio_empregado_{titulo_sufixo.lower().replace(" ", "_")}.png'); plt.show()
+    plt.ylabel('')
+    plt.tight_layout()
+    plt.savefig(f'grafico_6a_pizza_meio_empregado_{titulo_sufixo.lower().replace(" ", "_")}.png')
+    plt.show()
 
-    # Gráfico 6b (Linhas) - AGORA COM PROJEÇÃO
+    # Gráfico 6b: Evolução Temporal (Gráfico de Linhas)
     print("Gerando Gráfico 6b: Evolução do Meio Empregado ao Longo dos Anos...")
-    evolucao_meio = projetar_ano_corrente(df_meio, 'MEIO_EMPREGADO')
-    ano_maximo = df_meio['ANO'].max()
-
+    evolucao_meio = df_meio.groupby(['ANO', 'MEIO_EMPREGADO']).size().reset_index(name='TOTAL')
     plt.figure(figsize=(16, 9))
-    sns.lineplot(data=evolucao_meio[evolucao_meio['ANO'] < ano_maximo], x='ANO', y='TOTAL', hue='MEIO_EMPREGADO', marker='o', palette='viridis')
-    df_projetado = evolucao_meio[evolucao_meio['ANO'] == ano_maximo]
-    sns.lineplot(data=df_projetado, x='ANO', y='TOTAL', hue='MEIO_EMPREGADO', marker='X', markersize=10, legend=False)
-    
+    sns.lineplot(data=evolucao_meio, x='ANO', y='TOTAL', hue='MEIO_EMPREGADO', marker='o', palette='viridis')
     plt.title(f'Gráfico 6b: Evolução do Meio Empregado ao Longo dos Anos {titulo_sufixo}')
-    plt.xlabel('Ano'); plt.ylabel('Número Absoluto de Ocorrências'); plt.legend(title='Meio Empregado')
-    plt.figtext(0.99, 0.01, f'*Dado de {ano_maximo} é uma projeção anualizada.', horizontalalignment='right', style='italic', fontsize=10)
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.xlabel('Ano')
+    plt.ylabel('Número Absoluto de Ocorrências')
+    plt.legend(title='Meio Empregado')
+    plt.tight_layout()
     plt.savefig(f'grafico_6b_evolucao_meio_empregado_{titulo_sufixo.lower().replace(" ", "_")}.png')
     plt.show()
 
