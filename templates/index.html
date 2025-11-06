@@ -1,22 +1,50 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise Criminal - Ceará</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Nosso CSS -->
+    
+    <!-- Biblioteca Leaflet.js (para o mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Nosso arquivo de estilo -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css' ) }}">
 </head>
 <body>
     <div id="sidebar">
-        <h2>Filtros</h2>
-        <!-- Controles da sidebar (selects, botões) virão aqui -->
-    </div>
-    <div id="map"></div>
+        <img src="https://www.manus.ai/wp-content/uploads/2023/07/logo-manus-blue.png" alt="Logo Manus" width="150">
+        <h2>Análise Criminal</h2>
+        <hr>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Nosso script do mapa -->
-    <script src="{{ url_for('static', filename='js/map.js' ) }}"></script>
+        <div class="filter-group">
+            <label for="municipio-select">🔎 Pesquisar Município:</label>
+            <select id="municipio-select"></select>
+        </div>
+
+        <div class="filter-group">
+            <label for="crime-select">Tipo de Crime (Mapa ):</label>
+            <select id="crime-select">
+                {% for crime in crimes %}
+                    <option value="{{ crime }}" {% if crime == 'HOMICIDIO DOLOSO' %}selected{% endif %}>{{ crime }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Espaço para os gráficos -->
+        <div id="graficos-container">
+            <h3>Gráficos</h3>
+            <!-- Os botões para gerar gráficos irão aqui -->
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- Nosso script principal -->
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>
