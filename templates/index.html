@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Análise Criminal - Ceará</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Nosso CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css' ) }}">
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Filtros</h2>
+        <!-- Controles da sidebar (selects, botões) virão aqui -->
+    </div>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Nosso script do mapa -->
+    <script src="{{ url_for('static', filename='js/map.js' ) }}"></script>
+</body>
+</html>
