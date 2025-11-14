@@ -1,3 +1,4 @@
+
 <!-- templates/index.html (Versão com Zoom Padrão 8) -->
 
 <!DOCTYPE html>
@@ -313,11 +314,11 @@
 
         // --- LÓGICA DO MAPA (COM NOVO PADRÃO DE ZOOM) ---
         try {
-            // MUDANÇA 1: Alterando o zoom inicial e mínimo para 8
+            // MUDANÇA 1: Alterando o zoom inicial e mínimo para 7
             const map = L.map('map', { 
                 center: [-5.2, -39.5], 
-                zoom: 8, 
-                minZoom: 8, 
+                zoom: 7, 
+                minZoom: 7, 
                 zoomControl: false,
                 doubleClickZoom: false 
             });
@@ -330,7 +331,7 @@
             const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
 
             // MUDANÇA 2: Iniciando o ciclo de zoom em 8
-            let currentZoomStep = 8;
+            let currentZoomStep = 7;
 
             function getColor(t,m){const n=Number(t);if(isNaN(n)||n<=0)return'#E5E5E5';if(m===0)return'#ffffb2';const o=['#ffffb2','#fed976','#feb24c','#fd8d3c','#f03b20','#bd0026'];if(n>m*0.8)return o[5];if(n>m*0.6)return o[4];if(n>m*0.4)return o[3];if(n>m*0.2)return o[2];if(n>m*0.05)return o[1];return o[0]}
             
@@ -397,7 +398,7 @@
                 currentZoomStep++;
                 if (currentZoomStep > 11) {
                     // MUDANÇA 3: Volta para o início do ciclo em 8
-                    currentZoomStep = 8; 
+                    currentZoomStep = 7; 
                 }
                 map.setZoom(currentZoomStep);
             });
@@ -405,7 +406,7 @@
             map.on('zoomend', function() {
                 const currentMapZoom = map.getZoom();
                 // MUDANÇA 4: Ajusta o range do ciclo
-                if (currentMapZoom >= 8 && currentMapZoom <= 11) {
+                if (currentMapZoom >= 7 && currentMapZoom <= 11) {
                     currentZoomStep = currentMapZoom;
                 } else {
                     currentZoomStep = map.getZoom(); 
