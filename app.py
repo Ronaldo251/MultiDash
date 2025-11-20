@@ -42,7 +42,14 @@ df_crimes_graficos['ANO'] = df_crimes_graficos['DATA'].dt.year
 df_crimes_graficos['MES'] = df_crimes_graficos['DATA'].dt.month
 mapeamento_genero = {'MASCULINO': 'Masculino', 'HOMEM TRANS': 'Masculino', 'FEMININO': 'Feminino', 'MULHER TRANS': 'Feminino', 'TRAVESTI': 'Feminino'}
 df_crimes_graficos['GENERO_AGRUPADO'] = df_crimes_graficos['GENERO'].str.upper().str.strip().map(mapeamento_genero)
-
+def get_clean_age_df(df_base):
+    """Função auxiliar para limpar e preparar dados de idade."""
+    df_idade = df_base.copy()
+    df_idade['IDADE_NUM'] = pd.to_numeric(df_idade['IDADE_VITIMA'], errors='coerce')
+    df_idade.dropna(subset=['IDADE_NUM'], inplace=True)
+    df_idade['IDADE_NUM'] = df_idade['IDADE_NUM'].astype(int)
+    df_idade = df_idade[(df_idade['IDADE_NUM'] >= 0) & (df_idade['IDADE_NUM'] <= 110)]
+    return df_idade
 # --- PREPARAÇÃO DOS DADOS PARA OS MAPAS ---
 def normalize_text(text_series):
     return text_series.str.upper().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
@@ -347,6 +354,81 @@ def get_data_grafico_7b():
     return jsonify({
         'labels': contagem_orientacao.index.tolist(),
         'datasets': [{'label': 'Total de Vítimas', 'data': contagem_orientacao.values.tolist(), 'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']}]
+    })
+
+# ROTA PARA EVOLUÇÃO ANUAL DE HOMICÍDIOS (HxM)
+@app.route('/api/data/grafico_evolucao_anual_homicidios')
+def get_data_grafico_evolucao_anual_homicidios():
+    df_filtrado = get_filtered_df_for_charts()
+    naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
+    df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
+    
+    df_analise = df_homicidios.dropna(subset=['ANO', 'GENERO_AGRUPADO']).copy()
+    df_analise['ANO'] = df_analise['ANO'].astype('Int64')
+    dados_pivot = df_analise.groupby(['ANO', 'GENERO_AGRUPADO']).size().unstack(fill_value=0)
+
+    datasets = []
+    if 'Masculino' in dados_pivot:
+        datasets.append({'label': 'Masculino', 'data': dados_pivot['Masculino'].tolist(), 'borderColor': 'rgba(54, 162, 235, 1)'})
+    if 'Feminino' in dados_pivot:
+        datasets.append({'label': 'Feminino', 'data': dados_pivot['Feminino'].tolist(), 'borderColor': 'rgba(255, 99, 132, 1)'})
+        
+    return jsonify({'labels': [str(int(ano)) for ano in dados_pivot.index.tolist()], 'datasets': datasets})
+
+
+# ROTA PARA DENSIDADE ETÁRIA DE HOMICÍDIOS (Pode ser filtrada por gênero)
+@app.route('/api/data/grafico_densidade_etaria_homicidios')
+def get_data_grafico_densidade_etaria_homicidios():
+    # 1. Pega o DataFrame já filtrado por gênero (se o parâmetro 'genero' foi passado)
+    df_filtrado = get_filtered_df_for_charts() 
+    
+    # 2. Aplica o filtro de homicídios
+    naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
+    df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
+
+    # 3. Continua com a lógica de idade
+    df_idade = get_clean_age_df(df_homicidios)
+    if df_idade.empty: 
+        return jsonify({'labels': [], 'datasets': []})
+        
+    contagem_por_idade = df_idade.groupby('IDADE_NUM').size().reindex(range(111), fill_value=0)
+    
+    # Define a cor baseada no filtro de gênero
+    cor_borda = 'rgba(199, 0, 57, 1)' # Vermelho para mulheres
+    cor_fundo = 'rgba(199, 0, 57, 0.5)'
+    if request.args.get('genero') != 'feminino':
+        cor_borda = 'rgba(75, 192, 192, 1)' # Verde/Azul para geral
+        cor_fundo = 'rgba(75, 192, 192, 0.5)'
+
+    return jsonify({
+        'labels': contagem_por_idade.index.tolist(), 
+        'datasets': [{
+            'label': 'Número de Vítimas de Homicídio', 
+            'data': contagem_por_idade.values.tolist(), 
+            'borderColor': cor_borda, 
+            'backgroundColor': cor_fundo, 
+            'fill': True, 
+            'tension': 0.4
+        }]
+    })
+
+
+# ROTA PARA MEIO EMPREGADO EM HOMICÍDIOS (Pode ser filtrada por gênero)
+@app.route('/api/data/grafico_proporcao_meio_empregado_homicidios')
+def get_data_grafico_proporcao_meio_empregado_homicidios():
+    df_filtrado = get_filtered_df_for_charts()
+    naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
+    df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
+
+    df_meio = df_homicidios.dropna(subset=['MEIO_EMPREGADO'])
+    df_meio = df_meio[df_meio['MEIO_EMPREGADO'] != 'NÃO INFORMADO'].copy()
+    if df_meio.empty: return jsonify({'labels': [], 'datasets': []})
+        
+    contagem_meio = df_meio['MEIO_EMPREGADO'].value_counts()
+    
+    return jsonify({
+        'labels': contagem_meio.index.tolist(),
+        'datasets': [{'label': 'Meio Empregado', 'data': contagem_meio.values.tolist(), 'backgroundColor': ['#c70039', '#f94c10', '#f8de22', '#73a2c6', '#3d5a80']}]
     })
 
 # BLOCO FINAL PARA INICIAR O SERVIDOR

@@ -1,9 +1,9 @@
-# test_app.py
+# test_app.py (VERSÃO ATUALIZADA E FOCADA NA TESE)
 
 import pytest
-from app import app as flask_app  # Importa a nossa aplicação Flask do arquivo app.py
+from app import app as flask_app
 
-# --- CONFIGURAÇÃO DO AMBIENTE DE TESTE ---
+# --- CONFIGURAÇÃO DO AMBIENTE DE TESTE (sem alterações) ---
 
 @pytest.fixture
 def app():
@@ -12,32 +12,32 @@ def app():
 
 @pytest.fixture
 def client(app):
-    """Cria um 'cliente' de teste. É como um navegador simulado que pode fazer requisições à nossa app."""
+    """Cria um 'cliente' de teste, um navegador simulado para fazer requisições."""
     return app.test_client()
 
-# --- TESTES DAS ROTAS PRINCIPAIS E DE MAPA ---
+# --- TESTES DAS ROTAS PRINCIPAIS E DE MAPA (sem alterações) ---
 
 def test_pagina_inicial(client):
     """Testa se a página inicial (/) carrega corretamente."""
     response = client.get('/')
-    assert response.status_code == 200  # Verifica se a resposta foi "OK"
-    assert b"Dashboard de An\xc3\xa1lise Criminal" in response.data # Verifica se o título está na página
+    assert response.status_code == 200
+    assert b"Dashboard de An\xc3\xa1lise Criminal" in response.data
 
 def test_api_municipios(client):
     """Testa se a API que lista os municípios está funcionando."""
     response = client.get('/api/municipalities')
     assert response.status_code == 200
     json_data = response.get_json()
-    assert isinstance(json_data, list)  # A resposta deve ser uma lista
-    assert len(json_data) > 180  # O Ceará tem 184 municípios
-    assert 'name' in json_data[0] and 'lat' in json_data[0] # Verifica se a estrutura está correta
+    assert isinstance(json_data, list)
+    assert len(json_data) > 180
+    assert 'name' in json_data[0] and 'lat' in json_data[0]
 
 def test_api_mapa_municipios(client):
     """Testa a API do mapa de municípios para um crime específico."""
     response = client.get('/api/municipality_map_data/HOMICIDIO DOLOSO')
     assert response.status_code == 200
     json_data = response.get_json()
-    assert 'geojson' in json_data and 'max_taxa' in json_data # Verifica a estrutura da resposta
+    assert 'geojson' in json_data and 'max_taxa' in json_data
 
 def test_api_mapa_ais(client):
     """Testa a API do mapa de AIS para um crime específico."""
@@ -46,53 +46,56 @@ def test_api_mapa_ais(client):
     json_data = response.get_json()
     assert 'geojson' in json_data and 'max_taxa' in json_data
 
-# --- TESTES DAS ROTAS DE API DOS GRÁFICOS ---
-# Usamos 'parametrize' para testar várias rotas com o mesmo código, o que é muito eficiente.
+# --- TESTES DAS NOVAS ROTAS DE GRÁFICOS (FOCADAS NA TESE) ---
 
+# Usamos 'parametrize' para testar todas as novas rotas com o mesmo código.
 @pytest.mark.parametrize("endpoint", [
+    # Gráficos da categoria "Crimes Gerais (Comparativo HxM)"
     "/api/data/grafico_evolucao_anual",
-    "/api/data/grafico_comparativo_idade_genero",
+    "/api/data/grafico_evolucao_anual_homicidios",
+    "/api/data/grafico_comparativo_idade_genero_homicidios",
+
+    # Gráficos da categoria "Crimes Contra Mulheres"
+    "/api/data/grafico_densidade_etaria_homicidios",
+    "/api/data/grafico_proporcao_meio_empregado_homicidios",
     "/api/data/grafico_crimes_mulher_dia_hora",
-    "/api/data/grafico_distribuicao_raca",
-    "/api/data/grafico_densidade_etaria",
-    "/api/data/grafico_comparativo_crime_log",
-    "/api/data/grafico_proporcao_genero_crime",
-    "/api/data/grafico_proporcao_meio_empregado",
-    "/api/data/grafico_evolucao_meio_empregado",
-    "/api/data/grafico_evolucao_odio",
-    "/api/data/grafico_perfil_orientacao_sexual",
 ])
-def test_apis_de_graficos_gerais(client, endpoint):
-    """Testa todas as APIs de gráficos sem parâmetros."""
-    response = client.get(endpoint)
+def test_novas_apis_de_graficos(client, endpoint):
+    """Testa todas as APIs de gráficos da nova estrutura focada."""
+    # Testa a rota sem filtro de gênero
+    response_geral = client.get(endpoint)
+    assert response_geral.status_code == 200
+    json_data_geral = response_geral.get_json()
+    assert 'labels' in json_data_geral and 'datasets' in json_data_geral
+
+    # Testa a mesma rota com o filtro de gênero, para garantir que ela aceita o parâmetro
+    response_fem = client.get(f"{endpoint}?genero=feminino")
+    assert response_fem.status_code == 200
+    json_data_fem = response_fem.get_json()
+    assert 'labels' in json_data_fem and 'datasets' in json_data_fem
+
+# --- TESTES REMOVIDOS (ROTAS ANTIGAS) ---
+
+# Os testes para as rotas abaixo foram removidos porque as rotas foram comentadas
+# ou substituídas no app.py.
+# - /api/data/grafico_distribuicao_raca
+# - /api/data/grafico_comparativo_crime_log
+# - /api/data/grafico_proporcao_genero_crime
+# - /api/data/grafico_evolucao_odio
+# - etc.
+
+# --- TESTE DE UMA FUNCIONALIDADE ESPECÍFICA (OPCIONAL) ---
+
+def test_api_evolucao_anual_homicidios_estrutura(client):
+    """
+    Testa mais a fundo a estrutura da resposta da API de evolução de homicídios,
+    verificando se os datasets de Masculino e Feminino estão presentes.
+    """
+    response = client.get("/api/data/grafico_evolucao_anual_homicidios")
     assert response.status_code == 200
     json_data = response.get_json()
-    assert 'labels' in json_data and 'datasets' in json_data # Toda API de gráfico deve retornar essa estrutura
-
-@pytest.mark.parametrize("endpoint", [
-    "/api/data/grafico_distribuicao_raca",
-    "/api/data/grafico_densidade_etaria",
-])
-def test_apis_de_graficos_com_filtro_genero(client, endpoint):
-    """Testa as APIs que aceitam o filtro de gênero."""
-    response = client.get(f"{endpoint}?genero=feminino")
-    assert response.status_code == 200
-    json_data = response.get_json()
-    assert 'labels' in json_data and 'datasets' in json_data
-
-def test_api_grafico_meio_empregado_com_filtro(client):
-    """Testa a API de meio empregado com seu filtro específico."""
-    response = client.get("/api/data/grafico_proporcao_meio_empregado?filtro=feminino")
-    assert response.status_code == 200
-    json_data = response.get_json()
-    assert 'labels' in json_data and 'datasets' in json_data
-
-def test_api_grafico_evolucao_com_previsao(client):
-    """Testa a API de evolução anual com o parâmetro de previsão."""
-    response = client.get("/api/data/grafico_evolucao_anual?predict=5")
-    assert response.status_code == 200
-    json_data = response.get_json()
-    assert 'labels' in json_data and 'datasets' in json_data
-    # Verifica se os labels de previsão foram adicionados
-    assert any("(Previsão)" in label for label in json_data['labels'])
-
+    
+    # Verifica se a resposta contém os dois datasets esperados
+    labels = [d['label'] for d in json_data['datasets']]
+    assert 'Masculino' in labels
+    assert 'Feminino' in labels

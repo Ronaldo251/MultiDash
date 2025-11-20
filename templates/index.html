@@ -1,6 +1,3 @@
-
-<!-- templates/index.html (Versão com Zoom Padrão 8) -->
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -118,24 +115,36 @@
                 <div class="sub-panel">
                     <div class="sub-panel-content">
                         <ul class="checkbox-list">
-                            <li>
-                                <label><input type="checkbox" class="chart-checkbox" data-chart-id="evolucao_anual" data-chart-title="Evolução Anual de Crimes por Gênero" data-chart-type="line"> Evolução Anual por Gênero</label>
-                                <div class="sub-panel-item-content">
-                                    <label for="evolucao-anual-predict" style="font-size: 12px;">Previsão Futura:</label>
-                                    <select id="evolucao-anual-predict" class="chart-filter" data-target-chart="evolucao_anual">
-                                        <option value="0">Sem Previsão</option>
-                                        <option value="1">Prever 1 Ano</option>
-                                        <option value="5">Prever 5 Anos</option>
-                                        <option value="10">Prever 10 Anos</option>
-                                    </select>
-                                </div>
-                            </li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_crime_log" data-chart-title="Quantidade de Vítimas por Tipo de Crime" data-chart-type="bar"> Quantidade por Tipo de Crime</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="proporcao_genero_crime" data-chart-title="Proporção de Gênero por Tipo de Crime" data-chart-type="bar" data-chart-stacked="true" data-chart-axis="y"> Proporção de Gênero por Crime</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca" data-chart-title="Distribuição de Vítimas por Raça/Cor" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria" data-chart-title="Distribuição de Densidade Etária das Vítimas" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_idade_genero" data-chart-title="Comparativo de Idade por Gênero" data-chart-type="line"> Comparativo de Idade por Gênero</label></li>
-                        </ul>
+
+    <li>
+        <label><input type="checkbox" class="chart-checkbox" data-chart-id="evolucao_anual" data-chart-title="Evolução Anual de Crimes por Gênero" data-chart-type="line"> Evolução Anual por Gênero</label>
+
+        <div class="sub-panel-item-content">
+            <label for="evolucao-anual-predict" style="font-size: 12px;">Previsão Futura:</label>
+            <select id="evolucao-anual-predict" class="chart-filter" data-target-chart="evolucao_anual">
+                <option value="0">Sem Previsão</option>
+                <option value="1">Prever 1 Ano</option>
+                <option value="5">Prever 5 Anos</option>
+                <option value="10">Prever 10 Anos</option>
+            </select>
+        </div>
+    </li>
+    <li><label><input type="checkbox" class="chart-checkbox" 
+                data-chart-id="evolucao_anual_homicidios" 
+                data-chart-api-id="evolucao_anual_homicidios" 
+                data-chart-title="Evolução Anual de Homicídios (HxM)" 
+                data-chart-type="line"> Evolução Anual (Homicídios)</label></li>
+
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_idade_genero" data-chart-title="Comparativo de Idade por Gênero" data-chart-type="line"> Comparativo de Idade por Gênero</label></li>
+
+
+    <!-- 
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_crime_log" data-chart-title="Quantidade de Vítimas por Tipo de Crime" data-chart-type="bar"> Quantidade por Tipo de Crime</label></li>
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="proporcao_genero_crime" data-chart-title="Proporção de Gênero por Tipo de Crime" data-chart-type="bar" data-chart-stacked="true" data-chart-axis="y"> Proporção de Gênero por Crime</label></li>
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca" data-chart-title="Distribuição de Vítimas por Raça/Cor" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria" data-chart-title="Distribuição de Densidade Etária das Vítimas" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
+    -->
+</ul>
                     </div>
                 </div>
                 <hr style="border-color: #444;">
@@ -143,13 +152,31 @@
                 <div class="sub-panel">
                     <div class="sub-panel-content">
                         <ul class="checkbox-list">
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="crimes_mulher_dia_hora" data-chart-title="Crimes Contra Mulheres por Dia e Hora" data-chart-type="line"> Crimes por Dia e Hora</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca_fem" data-chart-api-id="distribuicao_raca" data-gender-filter="feminino" data-chart-title="Distribuição por Raça/Cor (Vítimas Mulheres)" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria_fem" data-chart-api-id="densidade_etaria" data-gender-filter="feminino" data-chart-title="Distribuição de Densidade Etária (Vítimas Mulheres)" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
-                        </ul>
+
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="crimes_mulher_dia_hora" data-chart-title="Crimes Contra Mulheres por Dia e Hora" data-chart-type="line"> Crimes por Dia e Hora</label></li>
+    <li><label><input type="checkbox" class="chart-checkbox" 
+    data-chart-id="densidade_etaria_homicidios_fem" 
+    data-chart-api-id="densidade_etaria_homicidios" 
+    data-gender-filter="feminino" 
+    data-chart-title="Densidade Etária (Homicídios de Mulheres)" 
+    data-chart-type="line"> Densidade Etária (Homicídios)</label></li>
+            
+            <li><label><input type="checkbox" class="chart-checkbox" 
+                data-chart-id="meio_empregado_homicidios_fem" 
+                data-chart-api-id="proporcao_meio_empregado_homicidios" 
+                data-gender-filter="feminino" 
+                data-chart-title="Meio Empregado (Homicídios de Mulheres)" 
+                data-chart-type="pie"> Meio Empregado (Homicídios)</label></li>
+    
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria_fem" data-chart-api-id="densidade_etaria" data-gender-filter="feminino" data-chart-title="Distribuição de Densidade Etária (Vítimas Mulheres)" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
+
+    <!--
+    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca_fem" data-chart-api-id="distribuicao_raca" data-gender-filter="feminino" data-chart-title="Distribuição por Raça/Cor (Vítimas Mulheres)" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
+    -->
+</ul>
                     </div>
                 </div>
-                <hr style="border-color: #444;">
+                <!--<hr style="border-color: #444;">
                 <span class="sub-accordion">Análise por Meio Empregado</span>
                 <div class="sub-panel">
                     <div class="sub-panel-content">
@@ -173,7 +200,7 @@
                             <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="perfil_orientacao_sexual" data-chart-title="Perfil de Orientação Sexual (Vítimas de LGBTfobia)" data-chart-type="bar"> Perfil de Orientação Sexual</label></li>
                         </ul>
                     </div>
-                </div>
+                </div>-->
             </div>
         </div>
     </div>
@@ -186,7 +213,6 @@
     </div>
 
     <script>
-        // --- LÓGICA DA SIDEBAR (sem alterações) ---
         const sidebar = document.getElementById("mySidebar");
         const mapContainer = document.getElementById("map");
         const openBtn = document.querySelector(".open-btn");
@@ -213,7 +239,6 @@
         setupAccordion('.accordion');
         setupAccordion('.sub-accordion');
 
-        // --- LÓGICA DOS GRÁFICOS (sem alterações) ---
         Chart.register(ChartDataLabels);
         const activeCharts = {};
         $('.chart-checkbox').on('change', function() {
@@ -312,9 +337,8 @@
             $('#popup-' + chartId).remove();
         }
 
-        // --- LÓGICA DO MAPA (COM NOVO PADRÃO DE ZOOM) ---
         try {
-            // MUDANÇA 1: Alterando o zoom inicial e mínimo para 7
+
             const map = L.map('map', { 
                 center: [-5.2, -39.5], 
                 zoom: 7, 
@@ -330,11 +354,36 @@
             let highlightedLayer = null;
             const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
 
-            // MUDANÇA 2: Iniciando o ciclo de zoom em 8
             let currentZoomStep = 7;
 
-            function getColor(t,m){const n=Number(t);if(isNaN(n)||n<=0)return'#E5E5E5';if(m===0)return'#ffffb2';const o=['#ffffb2','#fed976','#feb24c','#fd8d3c','#f03b20','#bd0026'];if(n>m*0.8)return o[5];if(n>m*0.6)return o[4];if(n>m*0.4)return o[3];if(n>m*0.2)return o[2];if(n>m*0.05)return o[1];return o[0]}
-            
+            function getColor(taxa, max_taxa) {
+    const valor = Number(taxa);
+
+    if (isNaN(valor) || valor <= 0) {
+        return '#E5E5E5'; 
+    }
+
+    if (max_taxa === 0) {
+        return '#C9A0DC'; 
+    }
+
+    const cores = [
+        '#C9A0DC', 
+        '#A0C4FF', 
+        '#B8E0D2', 
+        '#FFFF00', 
+        '#FFA500', 
+        '#FF0000'  
+    ];
+
+    if (valor > max_taxa * 0.83) return cores[5]; 
+    if (valor > max_taxa * 0.66) return cores[4]; 
+    if (valor > max_taxa * 0.50) return cores[3]; 
+    if (valor > max_taxa * 0.33) return cores[2];
+    if (valor > max_taxa * 0.16) return cores[1]; 
+    return cores[0];                            
+}
+
             function getFeatureStyle(feature, max_taxa) {
                 const taxa = feature.properties.TAXA_POR_100K;
                 return {
@@ -397,7 +446,6 @@
             map.on('dblclick', function() {
                 currentZoomStep++;
                 if (currentZoomStep > 11) {
-                    // MUDANÇA 3: Volta para o início do ciclo em 8
                     currentZoomStep = 7; 
                 }
                 map.setZoom(currentZoomStep);
@@ -405,7 +453,6 @@
 
             map.on('zoomend', function() {
                 const currentMapZoom = map.getZoom();
-                // MUDANÇA 4: Ajusta o range do ciclo
                 if (currentMapZoom >= 7 && currentMapZoom <= 11) {
                     currentZoomStep = currentMapZoom;
                 } else {
