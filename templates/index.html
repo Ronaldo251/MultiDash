@@ -21,10 +21,23 @@
         html, body { height: 100%; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
         #map { width: 100%; height: 100%; transition: margin-left 0.3s; background-color: #f0f0f0; }
         .sidebar {
-            height: 100%; width: var(--sidebar-width ); position: fixed; z-index: 1001; top: 0; left: 0;
-            background-color: var(--sidebar-bg); overflow-y: auto; transition: transform 0.3s; padding-top: 20px;
-            box-shadow: 3px 0 6px rgba(0,0,0,0.2); transform: translateX(calc(-1 * var(--sidebar-width)));
-        }
+    height: 100%; 
+    width: var(--sidebar-width); 
+    position: fixed; 
+    z-index: 1001; 
+    top: 0; 
+    left: 0;
+    background-color: var(--sidebar-bg); 
+    overflow-y: auto; 
+    transition: transform 0.3s; 
+    padding-top: 20px;
+    box-shadow: 3px 0 6px rgba(0,0,0,0.2); 
+    transform: translateX(calc(-1 * var(--sidebar-width)));
+    
+    /* ADIÇÃO: Espaçamento no final da sidebar */
+    padding-bottom: 50px; 
+    box-sizing: border-box; /* Garante que o padding não aumente a altura total */
+}
         .sidebar.open { transform: translateX(0); }
         #map.sidebar-open { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
         .open-btn {
@@ -79,6 +92,74 @@
         .ui-autocomplete {
             z-index: 1003 !important;
         }
+        #crime-checkbox-list {
+    height: 150px; 
+    overflow-y: auto; 
+    background-color: #ecf0f1; /* Fundo branco/cinza claro, como o restante */
+    padding: 10px; 
+    border-radius: 4px; 
+    color: #333; /* Cor do texto escura para contrastar com o fundo claro */
+}
+
+.crime-checkbox-item {
+    display: flex; /* Usa Flexbox para alinhar os itens */
+    align-items: center; /* Alinha verticalmente o checkbox e o texto */
+    margin-bottom: 8px; /* Espaçamento entre os itens */
+}
+
+.crime-checkbox-item input[type="checkbox"] {
+    margin-right: 8px; /* Espaço entre o checkbox e o texto */
+    /* Opcional: Aumenta um pouco o tamanho do checkbox */
+    width: 15px;
+    height: 15px;
+}
+
+.crime-checkbox-item span {
+    color: #2c3e50; /* Cor do texto escura, igual ao fundo da sidebar */
+    font-size: 14px;
+    /* Remove margens padrão que podem estar atrapalhando */
+    margin: 0; 
+    padding: 0;
+}
+.legend {
+    padding: 10px;
+    font: 14px Arial, Helvetica, sans-serif;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    color: #333;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center; /* Alinha o quadrado e o texto verticalmente */
+    margin-bottom: 5px; /* Espaço entre as linhas */
+}
+
+.legend-item:last-child {
+    margin-bottom: 0; /* Remove a margem do último item */
+}
+
+.legend-color-box {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    border: 1px solid #777; /* Adiciona uma borda sutil */
+}
+#draggable-info-content table {
+    width: 100%;
+    border-collapse: collapse; /* Remove espaços entre as células */
+}
+
+#draggable-info-content td {
+    padding: 4px 0; /* Espaçamento vertical */
+    font-size: 14px;
+}
+
+#draggable-info-content td:first-child {
+    font-weight: bold; /* Deixa o rótulo (ex: "Taxa/100k:") em negrito */
+    padding-right: 10px; /* Espaço entre o rótulo e o valor */
+}
     </style>
 </head>
 <body>
@@ -99,13 +180,18 @@
                     <label><input type="radio" name="mapView" value="municipality" checked> Municípios</label>
                     <label><input type="radio" name="mapView" value="ais"> AIS</label>
                 </div>
-                <label for="crime-select" style="margin-top: 15px;">Selecione o Tipo de Crime:</label>
-                <select id="crime-select">
-                    {% set crime_list = ['HOMICIDIO DOLOSO'] + (crimes | reject('equalto', 'HOMICIDIO DOLOSO') | list) %}
-                    {% for crime in crime_list %}
-                        <option value="{{ crime }}">{{ crime }}</option>
-                    {% endfor %}
-                </select>
+                <label style="margin-top: 15px;">Selecione os Tipos de Crime:</label>
+<div id="crime-checkbox-list">
+    {% set crime_list = ['HOMICIDIO DOLOSO'] + (crimes | reject('equalto', 'HOMICIDIO DOLOSO') | list) %}
+    {% for crime in crime_list %}
+        <!-- Nova estrutura para cada item -->
+        <div class="crime-checkbox-item">
+            <input type="checkbox" class="crime-filter-checkbox" name="crime_type" value="{{ crime }}" id="crime-{{ loop.index }}" {% if crime == 'HOMICIDIO DOLOSO' %}checked{% endif %}>
+            <!-- Usamos um span em vez de label para evitar conflitos de clique -->
+            <span>{{ crime }}</span>
+        </div>
+    {% endfor %}
+</div>
             </div>
         </div>
         <button class="accordion">Visualizar Gráficos</button>
@@ -211,280 +297,456 @@
             <div class="chart-popup-content"><canvas></canvas></div>
         </div>
     </div>
+    <div id="draggable-info-popup" class="chart-popup" style="width: 300px; height: auto; display: none;">
+    <div class="chart-popup-header"><span class="title">Informações do Município</span><span class="close-btn">&times;</span></div>
+    <div id="draggable-info-content" class="chart-popup-content" style="height: auto;">
+        <!-- O conteúdo será inserido aqui via JavaScript -->
+    </div>
+</div>
 
     <script>
-        const sidebar = document.getElementById("mySidebar");
-        const mapContainer = document.getElementById("map");
-        const openBtn = document.querySelector(".open-btn");
-        function toggleNav() {
-            sidebar.classList.toggle("open");
-            mapContainer.classList.toggle("sidebar-open");
-            openBtn.classList.toggle("shifted");
-            setTimeout(() => map.invalidateSize(), 300);
-        }
-        sidebar.classList.add("open");
-        mapContainer.classList.add("sidebar-open");
-        openBtn.classList.add("shifted");
-
-        function setupAccordion(selector) {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                el.addEventListener("click", function() {
-                    this.classList.toggle("active");
-                    const panel = this.nextElementSibling;
-                    panel.classList.toggle('open');
-                });
-            });
-        }
-        setupAccordion('.accordion');
-        setupAccordion('.sub-accordion');
-
-        Chart.register(ChartDataLabels);
-        const activeCharts = {};
-        $('.chart-checkbox').on('change', function() {
-            const chartId = $(this).data('chart-id');
-            if (this.checked) { createChartPopup(chartId); } else { destroyChartPopup(chartId); }
-        });
-        $('.chart-filter').on('change', function() {
-            const targetCharts = $(this).data('target-chart').split(',');
-            targetCharts.forEach(chartId => {
-                if ($(`input[data-chart-id="${chartId}"]`).is(':checked')) {
-                    destroyChartPopup(chartId);
-                    createChartPopup(chartId);
-                }
+    // --- LÓGICA DA SIDEBAR E ACORDIONS (sem alterações) ---
+    const sidebar = document.getElementById("mySidebar");
+    const mapContainer = document.getElementById("map");
+    const openBtn = document.querySelector(".open-btn");
+    function toggleNav() {
+        sidebar.classList.toggle("open");
+        mapContainer.classList.toggle("sidebar-open");
+        openBtn.classList.toggle("shifted");
+        setTimeout(() => map.invalidateSize(), 300);
+    }
+    sidebar.classList.add("open");
+    mapContainer.classList.add("sidebar-open");
+    openBtn.classList.add("shifted");
+    function setupAccordion(selector) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            el.addEventListener("click", function() {
+                this.classList.toggle("active");
+                this.nextElementSibling.classList.toggle('open');
             });
         });
-        async function createChartPopup(chartId) {
-            const $checkbox = $(`input[data-chart-id="${chartId}"]`);
-            const chartApiId = $checkbox.data('chart-api-id') || chartId;
-            const chartTitle = $checkbox.data('chart-title');
-            const chartType = $checkbox.data('chart-type') || 'line';
-            const isStacked = $checkbox.data('chart-stacked') || false;
-            const mainAxis = $checkbox.data('chart-axis') || 'x';
-            const genderFilter = $checkbox.data('gender-filter');
-            let finalChartTitle = chartTitle;
-            let apiUrl = `/api/data/grafico_${chartApiId}`;
-            let queryParams = [];
-            if (genderFilter) { queryParams.push(`genero=${genderFilter}`); }
-            $(`.chart-filter`).each(function() {
-                const targets = $(this).data('target-chart').split(',');
-                if (targets.includes(chartId) || targets.includes(chartApiId)) {
-                    const filterValue = $(this).val();
-                    const filterKey = this.id.includes('predict') ? 'predict' : 'filtro';
-                    if (filterValue !== "0" || filterKey === 'filtro') { queryParams.push(`${filterKey}=${filterValue}`); }
-                    if (filterKey === 'filtro') { finalChartTitle += ` (${$(this).find('option:selected').text()})`; }
-                }
-            });
-            if (queryParams.length > 0) { apiUrl += `?${queryParams.join('&')}`; }
-            const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
-            $popup.find('.title').text(finalChartTitle);
-            $('body').append($popup);
-            $popup.draggable({ handle: ".chart-popup-header" }).resizable();
-            $popup.find('.close-btn').on('click', function() {
-                $checkbox.prop('checked', false);
+    }
+    setupAccordion('.accordion');
+    setupAccordion('.sub-accordion');
+
+    // --- LÓGICA DOS GRÁFICOS (sem alterações) ---
+    // ... (toda a sua lógica de gráficos, createChartPopup, etc., permanece aqui) ...
+    Chart.register(ChartDataLabels);
+    const activeCharts = {};
+    $('.chart-checkbox').on('change', function() {
+        const chartId = $(this).data('chart-id');
+        if (this.checked) {
+            createChartPopup(chartId);
+        } else {
+            destroyChartPopup(chartId);
+        }
+    });
+    $('.chart-filter').on('change', function() {
+        const targetCharts = $(this).data('target-chart').split(',');
+        targetCharts.forEach(chartId => {
+            // Se o gráfico alvo estiver aberto, fecha e reabre com o novo filtro
+            if ($(`input[data-chart-id="${chartId}"]`).is(':checked')) {
                 destroyChartPopup(chartId);
-            });
-            try {
-                const response = await fetch(apiUrl);
-                const chartData = await response.json();
-                const ctx = $popup.find('canvas')[0].getContext('2d');
-                const chartOptions = {
-                    responsive: true, maintainAspectRatio: false, indexAxis: mainAxis,
-                    scales: { x: { stacked: isStacked }, y: { stacked: isStacked, beginAtZero: true } },
-                    plugins: {
-                        legend: { display: chartData.datasets.length > 1 && chartType !== 'pie' },
-                        datalabels: {
-                            formatter: (value, ctx) => {
-                                if (chartType === 'pie') {
-                                    let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                    if (sum === 0) return '0%';
-                                    return (value * 100 / sum).toFixed(1) + "%";
-                                }
-                                return Math.round(value);
-                            },
-                            color: '#fff', font: { weight: 'bold' }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || context.label || '';
-                                    if (label) { label += ': '; }
-                                    if (isStacked && mainAxis === 'y') { label += parseFloat(context.raw).toFixed(2) + '%'; } 
-                                    else { label += context.raw; }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                };
-                if (chartApiId === 'comparativo_crime_log') { chartOptions.scales.y.type = 'logarithmic'; }
-                if (isStacked && mainAxis === 'y') { chartOptions.scales.x.max = 100; }
-                if (!['proporcao_genero_crime'].includes(chartApiId) && chartType !== 'pie') {
-                    chartOptions.plugins.datalabels.display = false;
-                }
-                if (chartType === 'line') {
-                    chartData.datasets.forEach(dataset => {
-                        dataset.pointRadius = 0;
-                        dataset.borderWidth = 2;
-                    });
-                }
-                activeCharts[chartId] = new Chart(ctx, { type: chartType, data: chartData, options: chartOptions });
-                $popup.show();
-            } catch (error) { console.error("Erro ao buscar dados do gráfico:", error); $popup.remove(); }
+                createChartPopup(chartId);
+            }
+        });
+    });
+    async function createChartPopup(chartId) {
+        const $checkbox = $(`input[data-chart-id="${chartId}"]`);
+        const chartApiId = $checkbox.data('chart-api-id') || chartId;
+        const chartTitle = $checkbox.data('chart-title');
+        const chartType = $checkbox.data('chart-type') || 'line';
+        const isStacked = $checkbox.data('chart-stacked') || false;
+        const mainAxis = $checkbox.data('chart-axis') || 'x';
+        const genderFilter = $checkbox.data('gender-filter');
+
+        let finalChartTitle = chartTitle;
+        let apiUrl = `/api/data/grafico_${chartApiId}`;
+        let queryParams = [];
+
+        // Adiciona o filtro de gênero, se houver
+        if (genderFilter) {
+            queryParams.push(`genero=${genderFilter}`);
         }
-        function destroyChartPopup(chartId) {
-            if (activeCharts[chartId]) { activeCharts[chartId].destroy(); delete activeCharts[chartId]; }
-            $('#popup-' + chartId).remove();
+
+        // Procura por filtros associados a este gráfico e os adiciona à URL
+        $(`.chart-filter`).each(function() {
+            const targets = $(this).data('target-chart').split(',');
+            if (targets.includes(chartId) || targets.includes(chartApiId)) {
+                const filterValue = $(this).val();
+                const filterKey = this.id.includes('predict') ? 'predict' : 'filtro';
+                if (filterValue !== "0" || filterKey === 'filtro') {
+                    queryParams.push(`${filterKey}=${filterValue}`);
+                }
+                // Adiciona o texto do filtro ao título do gráfico para clareza
+                if (filterKey === 'filtro') {
+                    finalChartTitle += ` (${$(this).find('option:selected').text()})`;
+                }
+            }
+        });
+        if (queryParams.length > 0) {
+            apiUrl += `?${queryParams.join('&')}`;
         }
+
+        // Cria o elemento HTML do popup
+        const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
+        $popup.find('.title').text(finalChartTitle);
+        $('body').append($popup);
+        $popup.draggable({ handle: ".chart-popup-header" }).resizable();
+        $popup.find('.close-btn').on('click', function() {
+            $checkbox.prop('checked', false);
+            destroyChartPopup(chartId);
+        });
 
         try {
-
-            const map = L.map('map', { 
-                center: [-5.2, -39.5], 
-                zoom: 7, 
-                minZoom: 7, 
-                zoomControl: false,
-                doubleClickZoom: false 
-            });
-
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' } ).addTo(map);
+            const response = await fetch(apiUrl);
+            if (!response.ok) { // Verifica se a API retornou um erro
+                throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
+            }
+            const chartData = await response.json();
+            const ctx = $popup.find('canvas')[0].getContext('2d');
             
-            let geojsonLayer;
-            let highlightedLayer = null;
-            const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
+            // Opções de configuração do Chart.js
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: mainAxis,
+                scales: {
+                    x: { stacked: isStacked },
+                    y: { stacked: isStacked, beginAtZero: true }
+                },
+                plugins: {
+                    legend: {
+                        display: chartData.datasets.length > 1 && chartType !== 'pie'
+                    },
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            if (chartType === 'pie') {
+                                let sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                if (sum === 0) return '0%';
+                                return (value * 100 / sum).toFixed(1) + "%";
+                            }
+                            return Math.round(value);
+                        },
+                        color: '#fff',
+                        font: { weight: 'bold' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || context.label || '';
+                                if (label) { label += ': '; }
+                                if (isStacked && mainAxis === 'y') {
+                                    label += parseFloat(context.raw).toFixed(2) + '%';
+                                } else {
+                                    label += context.raw;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
 
-            let currentZoomStep = 7;
+            // Aplica configurações específicas para certos gráficos
+            if (chartApiId === 'comparativo_crime_log') {
+                chartOptions.scales.y.type = 'logarithmic';
+            }
+            if (isStacked && mainAxis === 'y') {
+                chartOptions.scales.x.max = 100;
+            }
+            if (!['proporcao_genero_crime'].includes(chartApiId) && chartType !== 'pie') {
+                chartOptions.plugins.datalabels.display = false;
+            }
+            if (chartType === 'line') {
+                chartData.datasets.forEach(dataset => {
+                    dataset.pointRadius = 0;
+                    dataset.borderWidth = 2;
+                });
+            }
 
-            function getColor(taxa, max_taxa) {
-    const valor = Number(taxa);
+            // Cria e armazena a instância do gráfico
+            activeCharts[chartId] = new Chart(ctx, { type: chartType, data: chartData, options: chartOptions });
+            $popup.show();
 
-    if (isNaN(valor) || valor <= 0) {
-        return '#E5E5E5'; 
+        } catch (error) {
+            console.error("Erro ao buscar ou renderizar dados do gráfico:", error);
+            $popup.remove(); // Remove o popup se houver erro
+        }
     }
 
-    if (max_taxa === 0) {
-        return '#C9A0DC'; 
+    function destroyChartPopup(chartId) {
+        if (activeCharts[chartId]) {
+            activeCharts[chartId].destroy();
+            delete activeCharts[chartId];
+        }
+        $('#popup-' + chartId).remove();
     }
 
-    const cores = [
-        '#C9A0DC', 
-        '#A0C4FF', 
-        '#B8E0D2', 
-        '#FFFF00', 
-        '#FFA500', 
-        '#FF0000'  
-    ];
 
-    if (valor > max_taxa * 0.83) return cores[5]; 
-    if (valor > max_taxa * 0.66) return cores[4]; 
-    if (valor > max_taxa * 0.50) return cores[3]; 
-    if (valor > max_taxa * 0.33) return cores[2];
-    if (valor > max_taxa * 0.16) return cores[1]; 
-    return cores[0];                            
+
+    // --- LÓGICA DO MAPA (VERSÃO CORRIGIDA E COM NOVAS FUNCIONALIDADES) ---
+    try {
+        $('#draggable-info-popup .close-btn').on('click', function() {
+    $('#draggable-info-popup').hide();
+    // Opcional: também limpar a seleção no mapa ao fechar o popup
+    clearAllSelections();
+});
+        const map = L.map('map', { 
+            center: [-5.2, -39.5], 
+            zoom: 7, 
+            minZoom: 7, 
+            zoomControl: false,
+            doubleClickZoom: false 
+        });
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }  ).addTo(map);
+        
+        // --- Variáveis da Lógica do Mapa ---
+        let geojsonLayer;
+        let selectedLayers = {};
+        let shiftPressed = false;
+        let aggregatedPopup = null;
+        let legendControl = null;
+        const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
+        let currentZoomStep = 7;
+
+        // --- Detecção da Tecla Shift ---
+        window.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftPressed = true; });
+        window.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftPressed = false; });
+
+        // --- Funções Auxiliares do Mapa ---
+        function getColor(taxa, max_taxa) {
+            const valor = Number(taxa);
+            if (isNaN(valor) || valor <= 0) return '#E5E5E5';
+            if (max_taxa === 0) return '#C9A0DC';
+            const cores = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
+            if (valor > max_taxa * 0.83) return cores[5]; 
+            if (valor > max_taxa * 0.66) return cores[4]; 
+            if (valor > max_taxa * 0.50) return cores[3]; 
+            if (valor > max_taxa * 0.33) return cores[2];
+            if (valor > max_taxa * 0.16) return cores[1]; 
+            return cores[0];                            
+        }
+
+        function getFeatureStyle(feature, max_taxa) {
+            return {
+                fillColor: getColor(feature.properties.TAXA_POR_100K, max_taxa),
+                weight: 1, opacity: 1, color: 'black', fillOpacity: 0.8
+            };
+        }
+        
+        function applyHighlight(layer) {
+            layer.setStyle(highlightStyle);
+            layer.bringToFront();
+        }
+
+        function removeHighlight(layer) {
+            if (geojsonLayer) geojsonLayer.resetStyle(layer);
+        }
+
+        function clearAllSelections() {
+            for (const name in selectedLayers) {
+                removeHighlight(selectedLayers[name]);
+            }
+            selectedLayers = {};
+            if (aggregatedPopup) {
+                map.closePopup(aggregatedPopup);
+                aggregatedPopup = null;
+            }
+            // Fecha também qualquer popup individual que possa estar aberto
+            $('#draggable-info-popup').hide();
+        }
+
+        function showAggregatedPopup() {
+    const selectionCount = Object.keys(selectedLayers).length;
+    if (selectionCount === 0) {
+        $('#draggable-info-popup').hide();
+        return;
+    }
+
+    let popupContentHtml = '';
+    let popupTitle = '';
+
+    // Inicia a tabela
+    popupContentHtml += '<table>';
+
+    if (selectionCount === 1) {
+        const layer = Object.values(selectedLayers)[0];
+        const props = layer.feature.properties;
+        const name = props.name || "N/A";
+        
+        popupTitle = `Info: ${name}`;
+        popupContentHtml += `
+            <tr><td>Nº Absoluto:</td><td>${Number(props.QUANTIDADE || 0).toFixed(0)}</td></tr>
+            <tr><td>Taxa/100k:</td><td>${Number(props.TAXA_POR_100K || 0).toFixed(2)}</td></tr>
+            <tr><td>População:</td><td>${Number(props.populacao || 0).toLocaleString('pt-BR')}</td></tr>
+        `;
+    } else {
+        let totalQuantidade = 0;
+        let totalPopulacao = 0;
+        let municipioNames = [];
+        for (const name in selectedLayers) {
+            const props = selectedLayers[name].feature.properties;
+            totalQuantidade += (props.QUANTIDADE || 0);
+            totalPopulacao += (props.populacao || 0);
+            municipioNames.push(name);
+        }
+        const taxaAgregada = totalPopulacao > 0 ? (totalQuantidade / totalPopulacao) * 100000 : 0;
+
+        popupTitle = `Seleção Agregada (${selectionCount} municípios)`;
+        popupContentHtml += `
+            <tr><td colspan="2" style="font-size: 12px; padding-bottom: 5px;"><b>Municípios:</b> ${municipioNames.join(', ')}</td></tr>
+            <tr><td colspan="2"><hr style="margin: 2px 0;"></td></tr>
+            <tr><td>Nº Absoluto Total:</td><td>${totalQuantidade.toLocaleString('pt-BR')}</td></tr>
+            <tr><td>População Total:</td><td>${totalPopulacao.toLocaleString('pt-BR')}</td></tr>
+            <tr><td>Taxa Agregada:</td><td>${taxaAgregada.toFixed(2)}</td></tr>
+        `;
+    }
+
+    // Fecha a tabela
+    popupContentHtml += '</table>';
+
+    // Preenche e mostra o popup
+    const $infoPopup = $('#draggable-info-popup');
+    $infoPopup.find('.title').text(popupTitle);
+    $infoPopup.find('#draggable-info-content').html(popupContentHtml);
+    
+    if (!$infoPopup.data('ui-draggable')) {
+        $infoPopup.draggable({ handle: ".chart-popup-header" }).resizable();
+    }
+    
+    $infoPopup.show();
 }
 
-            function getFeatureStyle(feature, max_taxa) {
-                const taxa = feature.properties.TAXA_POR_100K;
-                return {
-                    fillColor: getColor(taxa, max_taxa),
-                    weight: 1,
-                    opacity: 1,
-                    color: 'black',
-                    fillOpacity: 0.8
-                };
+
+
+        // --- Função Principal de Atualização do Mapa ---
+        async function updateMap() {
+            if (geojsonLayer) map.removeLayer(geojsonLayer);
+            clearAllSelections();
+
+            const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
+            if (selectedCrimes.length === 0) {
+                // Se nada estiver selecionado, limpa o mapa (opcional)
+                if (legendControl) map.removeControl(legendControl);
+                return; 
             }
+            const mapView = $('input[name="mapView"]:checked').val();
+            const apiUrl = `/api/${mapView}_map_data?crimes=${selectedCrimes.map(c => encodeURIComponent(c)).join(',')}`;
             
-            function applyHighlight(layer) {
-                if (highlightedLayer) {
-                    geojsonLayer.resetStyle(highlightedLayer);
-                }
-                highlightedLayer = layer;
-                layer.setStyle(highlightStyle);
-                layer.bringToFront();
-            }
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                const geojsonData = data.geojson;
+                const max_taxa = data.max_taxa;
 
-            function removeHighlight() {
-                if (highlightedLayer) {
-                    geojsonLayer.resetStyle(highlightedLayer);
-                    highlightedLayer = null;
-                }
-            }
+                // Atualiza a legenda
+                if (legendControl) map.removeControl(legendControl);
+                legendControl = L.control({position: 'bottomleft'});
+                legendControl.onAdd = function (map) {
+                    const div = L.DomUtil.create('div', 'legend');
+                    const colors = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
+                    const grades = [0, max_taxa * 0.16, max_taxa * 0.33, max_taxa * 0.50, max_taxa * 0.66, max_taxa * 0.83];
+                    div.innerHTML += '<b>Taxa / 100k hab.</b>  ';
+                    for (let i = 0; i < grades.length; i++) {
+                        const from = grades[i];
+                        const to = grades[i + 1];
+                        const labelText = to ? `${from.toFixed(0)} &ndash; ${to.toFixed(0)}` : `${from.toFixed(0)}+`;
+                        div.innerHTML += `<div class="legend-item"><div class="legend-color-box" style="background:${colors[i]}"></div><span>${labelText}</span></div>`;
+                    }
+                    return div;
+                };
+                legendControl.addTo(map);
 
-            async function updateMap() {
-                if (geojsonLayer) map.removeLayer(geojsonLayer);
-                removeHighlight();
-                const crimeType = $('#crime-select').val();
-                const mapView = $('input[name="mapView"]:checked').val();
-                const apiUrl = `/api/${mapView}_map_data/${crimeType}`;
-                try {
-                    const response = await fetch(apiUrl);
-                    const data = await response.json();
-                    const geojsonData = data.geojson;
-                    const max_taxa = data.max_taxa;
-                    geojsonLayer = L.geoJson(geojsonData, {
-                        style: (feature) => getFeatureStyle(feature, max_taxa),
-                        onEachFeature: function (feature, layer) {
-                            const props = feature.properties;
-                            const id_prop = mapView === 'ais' ? 'AIS' : 'name';
-                            const name = props[id_prop] || "N/A";
-                            const popupContent = `<h4>${name}</h4><b>Nº Absoluto:</b> ${Number(props.QUANTIDADE || 0).toFixed(0)}  
+                // Adiciona a camada de dados ao mapa
+                geojsonLayer = L.geoJson(geojsonData, {
+                    style: (feature) => getFeatureStyle(feature, max_taxa),
+                    onEachFeature: function (feature, layer) {
+                        const props = feature.properties;
+                        const id_prop = mapView === 'ais' ? 'AIS' : 'name';
+                        const name = props[id_prop] || "N/A";
+                        const popupContent = `<h4>${name}</h4><b>Nº Absoluto:</b> ${Number(props.QUANTIDADE || 0).toFixed(0)}  
 <b>Taxa/100k:</b> ${Number(props.TAXA_POR_100K || 0).toFixed(2)}`;
-                            layer.bindPopup(popupContent);
 
-                            layer.on('click', function(e) {
-                                L.DomEvent.stopPropagation(e);
-                                applyHighlight(layer);
-                            });
-                        }
-                    }).addTo(map);
-                } catch (error) { console.error('ERRO DENTRO DO updateMap:', error); }
-            }
-            $('#crime-select, input[name="mapView"]').on('change', updateMap);
-            map.on('click', removeHighlight);
 
-            map.on('dblclick', function() {
-                currentZoomStep++;
-                if (currentZoomStep > 11) {
-                    currentZoomStep = 7; 
-                }
-                map.setZoom(currentZoomStep);
-            });
+                        layer.on('click', function(e) {
+                            L.DomEvent.stopPropagation(e);
+                            const layerName = e.target.feature.properties.name;
 
-            map.on('zoomend', function() {
-                const currentMapZoom = map.getZoom();
-                if (currentMapZoom >= 7 && currentMapZoom <= 11) {
-                    currentZoomStep = currentMapZoom;
-                } else {
-                    currentZoomStep = map.getZoom(); 
-                }
-            });
-
-            $.getJSON('/api/municipalities', function(data) {
-                const municipalities = data.map(m => ({ label: m.name, value: m.name, lat: m.lat, lon: m.lon }));
-                $("#municipio-search").autocomplete({
-                    source: municipalities,
-                    select: function(event, ui) {
-                        const mun = ui.item;
-                        map.flyTo([mun.lat, mun.lon], 11);
-                        
-                        geojsonLayer.eachLayer(function(layer) {
-                            if (layer.feature.properties.name === mun.value) {
-                                applyHighlight(layer);
+                            if (!shiftPressed) {
+                                clearAllSelections();
+                                selectedLayers[layerName] = e.target;
+                                applyHighlight(e.target);
+                            } else {
+                                if (selectedLayers[layerName]) {
+                                    removeHighlight(e.target);
+                                    delete selectedLayers[layerName];
+                                } else {
+                                    selectedLayers[layerName] = e.target;
+                                    applyHighlight(e.target);
+                                }
+                            }
+                            
+                            const group = new L.featureGroup(Object.values(selectedLayers));
+                            if (Object.keys(selectedLayers).length > 0) {
+                                map.flyToBounds(group.getBounds().pad(0.1), { maxZoom: 8 });
+                                showAggregatedPopup();
                             }
                         });
-                        
-                        $("#municipio-search").val('');
-                        return false;
                     }
-                });
-            });
+                }).addTo(map);
+            } catch (error) { console.error('ERRO DENTRO DO updateMap:', error); }
+        }
 
-            document.querySelectorAll('.accordion').forEach(acc => { acc.click(); });
-            setTimeout(() => map.invalidateSize(), 400);
-            updateMap();
-        } catch (e) { console.error("ERRO FATAL NA INICIALIZAÇÃO DO SCRIPT:", e); }
-    </script>
+        // --- Gatilhos de Eventos ---
+        $('#crime-checkbox-list, input[name="mapView"]').on('change', updateMap);
+        map.on('click', clearAllSelections);
+        map.on('dblclick', function() {
+            currentZoomStep++;
+            if (currentZoomStep > 11) currentZoomStep = 7; 
+            map.setZoom(currentZoomStep);
+        });
+        map.on('zoomend', function() {
+            const currentMapZoom = map.getZoom();
+            if (currentMapZoom >= 7 && currentMapZoom <= 11) {
+                currentZoomStep = currentMapZoom;
+            } else {
+                currentZoomStep = map.getZoom(); 
+            }
+        });
+
+        // --- Lógica do Autocomplete ---
+        $.getJSON('/api/municipalities', function(data) {
+            const municipalities = data.map(m => ({ label: m.name, value: m.name, lat: m.lat, lon: m.lon }));
+            $("#municipio-search").autocomplete({
+                source: municipalities,
+                select: function(event, ui) {
+                    const mun = ui.item;
+                    clearAllSelections();
+                    geojsonLayer.eachLayer(function(layer) {
+                        if (layer.feature.properties.name === mun.value) {
+                            selectedLayers[mun.value] = layer;
+                            applyHighlight(layer);
+                            map.flyToBounds(layer.getBounds().pad(0.1));
+                        }
+                    });
+                    $("#municipio-search").val('');
+                    return false;
+                }
+            });
+        });
+
+        // --- Inicialização ---
+        document.querySelectorAll('.accordion').forEach(acc => { acc.click(); });
+        setTimeout(() => map.invalidateSize(), 400);
+        updateMap();
+
+    } catch (e) { console.error("ERRO FATAL NA INICIALIZAÇÃO DO SCRIPT:", e); }
+</script>
 
 </body>
 </html>
+

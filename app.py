@@ -103,20 +103,59 @@ def get_filtered_df_for_charts():
 def index():
     return render_template('index.html', crimes=LISTA_DE_CRIMES)
 
-@app.route('/api/municipality_map_data/<crime_type>')
-def get_municipality_map_data(crime_type):
-    dados_do_crime = crimes_com_pop_mun[crimes_com_pop_mun['NATUREZA'] == crime_type]
-    mapa_completo = gdf_municipios_raw.merge(dados_do_crime[['MUNICIPIO_NORM', 'QUANTIDADE', 'TAXA_POR_100K']], left_on='NM_MUN_NORM', right_on='MUNICIPIO_NORM', how='left')
-    mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']].fillna(0)
+@app.route('/api/municipality_map_data')
+def get_municipality_map_data():
+    crime_types_str = request.args.get('crimes')
+    if not crime_types_str:
+        return jsonify({"error": "Nenhum crime selecionado"}), 400
+    
+    crime_types = crime_types_str.split(',')
+    dados_filtrados = crimes_com_pop_mun[crimes_com_pop_mun['NATUREZA'].isin(crime_types)]
+
+    dados_agregados = dados_filtrados.groupby('MUNICIPIO_NORM').agg({
+        'QUANTIDADE': 'sum',
+        'populacao': 'first'
+    }).reset_index()
+
+    dados_agregados['TAXA_POR_100K'] = (dados_agregados['QUANTIDADE'] / dados_agregados['populacao']) * 100000
+
+    # A CORREÇÃO ESTÁ AQUI: Adicionamos 'populacao' à lista de colunas
+    mapa_completo = gdf_municipios_raw.merge(dados_agregados[['MUNICIPIO_NORM', 'QUANTIDADE', 'TAXA_POR_100K', 'populacao']], left_on='NM_MUN_NORM', right_on='MUNICIPIO_NORM', how='left')
+    
+    mapa_completo[['QUANTIDADE', 'TAXA_POR_100K', 'populacao']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K', 'populacao']].fillna(0)
     max_taxa = mapa_completo['TAXA_POR_100K'].max()
+    
     return jsonify({'geojson': json.loads(mapa_completo.to_json()), 'max_taxa': max_taxa})
 
-@app.route('/api/ais_map_data/<crime_type>')
-def get_ais_map_data(crime_type):
-    dados_do_crime = crimes_com_pop_ais[crimes_com_pop_ais['NATUREZA'] == crime_type]
-    mapa_completo = gdf_ais.merge(dados_do_crime[['AIS_MAPEADA', 'QUANTIDADE', 'TAXA_POR_100K']], left_on='AIS', right_on='AIS_MAPEADA', how='left')
+
+
+@app.route('/api/ais_map_data') # Remove <crime_type> da URL
+def get_ais_map_data():
+    # 1. Pega a lista de crimes dos parâmetros da URL (igual à outra rota)
+    crime_types_str = request.args.get('crimes')
+    if not crime_types_str:
+        return jsonify({"error": "Nenhum crime selecionado"}), 400
+    
+    crime_types = crime_types_str.split(',')
+
+    # 2. Filtra o DataFrame de AIS para TODOS os crimes selecionados
+    dados_filtrados = crimes_com_pop_ais[crimes_com_pop_ais['NATUREZA'].isin(crime_types)]
+
+    # 3. Agrega (soma) os dados por AIS
+    # A única mudança real está aqui: o groupby é por 'AIS_MAPEADA'
+    dados_agregados = dados_filtrados.groupby('AIS_MAPEADA').agg({
+        'QUANTIDADE': 'sum',
+        'populacao': 'first' # A população da AIS é a mesma, então pegamos a primeira
+    }).reset_index()
+
+    # 4. Recalcula a taxa com os dados somados
+    dados_agregados['TAXA_POR_100K'] = (dados_agregados['QUANTIDADE'] / dados_agregados['populacao']) * 100000
+
+    # 5. O resto da lógica de merge e retorno continua igual, usando os dados agregados
+    mapa_completo = gdf_ais.merge(dados_agregados[['AIS_MAPEADA', 'QUANTIDADE', 'TAXA_POR_100K']], left_on='AIS', right_on='AIS_MAPEADA', how='left')
     mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']].fillna(0)
     max_taxa = mapa_completo['TAXA_POR_100K'].max()
+    
     return jsonify({'geojson': json.loads(mapa_completo.to_json()), 'max_taxa': max_taxa})
 
 @app.route('/api/municipalities')
