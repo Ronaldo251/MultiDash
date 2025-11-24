@@ -38,6 +38,12 @@
     padding-bottom: 50px; 
     box-sizing: border-box; /* Garante que o padding não aumente a altura total */
 }
+.variation {
+    font-weight: bold;
+    padding-left: 8px;
+}
+.variation.positive { color: #e74c3c; } /* Vermelho para aumento */
+.variation.negative { color: #2ecc71; } /* Verde para queda */
         .sidebar.open { transform: translateX(0); }
         #map.sidebar-open { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
         .open-btn {
@@ -297,12 +303,16 @@
             <div class="chart-popup-content"><canvas></canvas></div>
         </div>
     </div>
-    <div id="draggable-info-popup" class="chart-popup" style="width: 300px; height: auto; display: none;">
-    <div class="chart-popup-header"><span class="title">Informações do Município</span><span class="close-btn">&times;</span></div>
-    <div id="draggable-info-content" class="chart-popup-content" style="height: auto;">
-        <!-- O conteúdo será inserido aqui via JavaScript -->
+    <div id="draggable-info-popup" class="chart-popup" style="width: 320px; height: auto; display: none;">
+        <div class="chart-popup-header"><span class="title">Informações</span><span class="close-btn">&times;</span></div>
+        <div id="draggable-info-content" class="chart-popup-content" style="height: auto;">
+            <!-- O conteúdo da tabela será inserido aqui via JavaScript -->
+        </div>
+        <!-- NOVO: Container para o mini gráfico -->
+        <div id="mini-chart-container" style="height: 100px; padding: 0 15px 15px 15px; display: none;">
+            <canvas id="mini-chart-canvas"></canvas>
+        </div>
     </div>
-</div>
 
     <script>
     // --- LÓGICA DA SIDEBAR E ACORDIONS (sem alterações) ---
@@ -512,6 +522,8 @@
         let legendControl = null;
         const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
         let currentZoomStep = 7;
+        let taxaMediaEstado = 0; // ADICIONE ESTA LINHA
+        let totalMunicipios = 0; // ADICIONE ESTA LINHA
 
         // --- Detecção da Tecla Shift ---
         window.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftPressed = true; });
@@ -560,18 +572,27 @@
             $('#draggable-info-popup').hide();
         }
 
-        function showAggregatedPopup() {
+        let miniChartInstance = null;
+
+async function showAggregatedPopup() {
     const selectionCount = Object.keys(selectedLayers).length;
+    const $infoPopup = $('#draggable-info-popup');
+    const $miniChartContainer = $('#mini-chart-container');
+
+    // Limpa o gráfico anterior e esconde o container
+    if (miniChartInstance) {
+        miniChartInstance.destroy();
+        miniChartInstance = null;
+    }
+    $miniChartContainer.hide();
+
     if (selectionCount === 0) {
-        $('#draggable-info-popup').hide();
+        $infoPopup.hide();
         return;
     }
 
-    let popupContentHtml = '';
+    let popupContentHtml = '<table>';
     let popupTitle = '';
-
-    // Inicia a tabela
-    popupContentHtml += '<table>';
 
     if (selectionCount === 1) {
         const layer = Object.values(selectedLayers)[0];
@@ -579,15 +600,71 @@
         const name = props.name || "N/A";
         
         popupTitle = `Info: ${name}`;
+
+        // Calcula a variação vs. a média
+        let variationHtml = '';
+        if (taxaMediaEstado > 0) {
+            const variation = ((props.TAXA_POR_100K / taxaMediaEstado) - 1) * 100;
+            const varClass = variation > 0 ? 'positive' : 'negative';
+            const sign = variation > 0 ? '+' : '';
+            variationHtml = `<span class="variation ${varClass}">(${sign}${variation.toFixed(1)}%)</span>`;
+        }
+
         popupContentHtml += `
             <tr><td>Nº Absoluto:</td><td>${Number(props.QUANTIDADE || 0).toFixed(0)}</td></tr>
-            <tr><td>Taxa/100k:</td><td>${Number(props.TAXA_POR_100K || 0).toFixed(2)}</td></tr>
             <tr><td>População:</td><td>${Number(props.populacao || 0).toLocaleString('pt-BR')}</td></tr>
+            <tr><td>Taxa/100k:</td><td>${Number(props.TAXA_POR_100K || 0).toFixed(2)}</td></tr>
+            <tr><td>Média Estado:</td><td>${taxaMediaEstado.toFixed(2)} ${variationHtml}</td></tr>
+            <tr><td>Ranking (Taxa):</td><td><b>${props.ranking || 'N/A'}º</b> de ${totalMunicipios}</td></tr>
         `;
-    } else {
-        let totalQuantidade = 0;
-        let totalPopulacao = 0;
-        let municipioNames = [];
+
+        // --- LÓGICA DO MINI GRÁFICO ---
+        try {
+            const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
+            const crimesParam = selectedCrimes.map(c => encodeURIComponent(c)).join(',');
+            const historyUrl = `/api/history/municipio/${name}?crimes=${crimesParam}`;
+            
+            const response = await fetch(historyUrl);
+            const historyData = await response.json();
+
+            $miniChartContainer.show();
+            const ctx = document.getElementById('mini-chart-canvas').getContext('2d');
+            
+            miniChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData.labels,
+                    datasets: [{
+                        label: 'Nº de Ocorrências',
+                        data: historyData.data,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Tendência Histórica (Nº Absoluto)', font: { size: 12 } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Erro ao buscar histórico do município:", e);
+            $miniChartContainer.hide();
+        }
+
+    } else { // Lógica para múltiplos municípios (sem mini gráfico)
+        let totalQuantidade = 0, totalPopulacao = 0, municipioNames = [];
         for (const name in selectedLayers) {
             const props = selectedLayers[name].feature.properties;
             totalQuantidade += (props.QUANTIDADE || 0);
@@ -606,11 +683,9 @@
         `;
     }
 
-    // Fecha a tabela
     popupContentHtml += '</table>';
 
     // Preenche e mostra o popup
-    const $infoPopup = $('#draggable-info-popup');
     $infoPopup.find('.title').text(popupTitle);
     $infoPopup.find('#draggable-info-content').html(popupContentHtml);
     
@@ -620,86 +695,89 @@
     
     $infoPopup.show();
 }
-
-
-
-        // --- Função Principal de Atualização do Mapa ---
         async function updateMap() {
-            if (geojsonLayer) map.removeLayer(geojsonLayer);
-            clearAllSelections();
+    if (geojsonLayer) map.removeLayer(geojsonLayer);
+    clearAllSelections();
 
-            const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
-            if (selectedCrimes.length === 0) {
-                // Se nada estiver selecionado, limpa o mapa (opcional)
-                if (legendControl) map.removeControl(legendControl);
-                return; 
-            }
-            const mapView = $('input[name="mapView"]:checked').val();
-            const apiUrl = `/api/${mapView}_map_data?crimes=${selectedCrimes.map(c => encodeURIComponent(c)).join(',')}`;
-            
-            try {
-                const response = await fetch(apiUrl);
-                const data = await response.json();
-                const geojsonData = data.geojson;
-                const max_taxa = data.max_taxa;
+    const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
+    if (selectedCrimes.length === 0) {
+        if (legendControl) map.removeControl(legendControl);
+        return; 
+    }
+    const mapView = $('input[name="mapView"]:checked').val();
+    
+    // Apenas a visualização por município retorna ranking e média
+    if (mapView !== 'municipality') {
+        taxaMediaEstado = 0;
+        totalMunicipios = 0;
+    }
 
-                // Atualiza a legenda
-                if (legendControl) map.removeControl(legendControl);
-                legendControl = L.control({position: 'bottomleft'});
-                legendControl.onAdd = function (map) {
-                    const div = L.DomUtil.create('div', 'legend');
-                    const colors = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
-                    const grades = [0, max_taxa * 0.16, max_taxa * 0.33, max_taxa * 0.50, max_taxa * 0.66, max_taxa * 0.83];
-                    div.innerHTML += '<b>Taxa / 100k hab.</b>  ';
-                    for (let i = 0; i < grades.length; i++) {
-                        const from = grades[i];
-                        const to = grades[i + 1];
-                        const labelText = to ? `${from.toFixed(0)} &ndash; ${to.toFixed(0)}` : `${from.toFixed(0)}+`;
-                        div.innerHTML += `<div class="legend-item"><div class="legend-color-box" style="background:${colors[i]}"></div><span>${labelText}</span></div>`;
-                    }
-                    return div;
-                };
-                legendControl.addTo(map);
-
-                // Adiciona a camada de dados ao mapa
-                geojsonLayer = L.geoJson(geojsonData, {
-                    style: (feature) => getFeatureStyle(feature, max_taxa),
-                    onEachFeature: function (feature, layer) {
-                        const props = feature.properties;
-                        const id_prop = mapView === 'ais' ? 'AIS' : 'name';
-                        const name = props[id_prop] || "N/A";
-                        const popupContent = `<h4>${name}</h4><b>Nº Absoluto:</b> ${Number(props.QUANTIDADE || 0).toFixed(0)}  
-<b>Taxa/100k:</b> ${Number(props.TAXA_POR_100K || 0).toFixed(2)}`;
-
-
-                        layer.on('click', function(e) {
-                            L.DomEvent.stopPropagation(e);
-                            const layerName = e.target.feature.properties.name;
-
-                            if (!shiftPressed) {
-                                clearAllSelections();
-                                selectedLayers[layerName] = e.target;
-                                applyHighlight(e.target);
-                            } else {
-                                if (selectedLayers[layerName]) {
-                                    removeHighlight(e.target);
-                                    delete selectedLayers[layerName];
-                                } else {
-                                    selectedLayers[layerName] = e.target;
-                                    applyHighlight(e.target);
-                                }
-                            }
-                            
-                            const group = new L.featureGroup(Object.values(selectedLayers));
-                            if (Object.keys(selectedLayers).length > 0) {
-                                map.flyToBounds(group.getBounds().pad(0.1), { maxZoom: 8 });
-                                showAggregatedPopup();
-                            }
-                        });
-                    }
-                }).addTo(map);
-            } catch (error) { console.error('ERRO DENTRO DO updateMap:', error); }
+    const apiUrl = `/api/${mapView}_map_data?crimes=${selectedCrimes.map(c => encodeURIComponent(c)).join(',')}`;
+    
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`Erro na API do mapa: ${response.status}`);
+        const data = await response.json();
+        
+        // --- LOCAL CORRETO PARA ARMAZENAR OS DADOS ---
+        const geojsonData = data.geojson;
+        const max_taxa = data.max_taxa;
+        if (mapView === 'municipality') {
+            taxaMediaEstado = data.taxa_media_estado || 0; 
+            totalMunicipios = data.total_municipios || 0; 
         }
+
+        // Atualiza a legenda
+        if (legendControl) map.removeControl(legendControl);
+        legendControl = L.control({position: 'bottomleft'});
+        legendControl.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'legend');
+            const colors = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
+            const grades = [0, max_taxa * 0.16, max_taxa * 0.33, max_taxa * 0.50, max_taxa * 0.66, max_taxa * 0.83];
+            div.innerHTML += '<b>Taxa / 100k hab.</b>  ';
+            for (let i = 0; i < grades.length; i++) {
+                const from = grades[i];
+                const to = grades[i + 1];
+                const labelText = to ? `${from.toFixed(0)} &ndash; ${to.toFixed(0)}` : `${from.toFixed(0)}+`;
+                div.innerHTML += `<div class="legend-item"><div class="legend-color-box" style="background:${colors[i]}"></div><span>${labelText}</span></div>`;
+            }
+            return div;
+        };
+        legendControl.addTo(map);
+
+        // Adiciona a camada de dados ao mapa
+        geojsonLayer = L.geoJson(geojsonData, {
+            style: (feature) => getFeatureStyle(feature, max_taxa),
+            onEachFeature: function (feature, layer) {
+                layer.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    const layerName = e.target.feature.properties.name;
+
+                    if (!shiftPressed) {
+                        clearAllSelections();
+                        selectedLayers[layerName] = e.target;
+                        applyHighlight(e.target);
+                    } else {
+                        if (selectedLayers[layerName]) {
+                            removeHighlight(e.target);
+                            delete selectedLayers[layerName];
+                        } else {
+                            selectedLayers[layerName] = e.target;
+                            applyHighlight(e.target);
+                        }
+                    }
+                    
+                    const group = new L.featureGroup(Object.values(selectedLayers));
+                    if (Object.keys(selectedLayers).length > 0) {
+                        map.flyToBounds(group.getBounds().pad(0.1), { maxZoom: 10 }); // Zoom ajustado para 10
+                        showAggregatedPopup();
+                    }
+                });
+            }
+        }).addTo(map);
+    } catch (error) { console.error('ERRO DENTRO DO updateMap:', error); }
+}
+
 
         // --- Gatilhos de Eventos ---
         $('#crime-checkbox-list, input[name="mapView"]').on('change', updateMap);
@@ -730,7 +808,7 @@
                         if (layer.feature.properties.name === mun.value) {
                             selectedLayers[mun.value] = layer;
                             applyHighlight(layer);
-                            map.flyToBounds(layer.getBounds().pad(0.1));
+                            map.flyToBounds(layer.getBounds().pad(0.1), { maxZoom: 10 });
                         }
                     });
                     $("#municipio-search").val('');

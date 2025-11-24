@@ -105,54 +105,82 @@ def index():
 
 @app.route('/api/municipality_map_data')
 def get_municipality_map_data():
+    selected_crimes = request.args.get('crimes').split(',')
+    
+    # Filtra o DataFrame JÁ PROCESSADO para os crimes selecionados
+    dados_filtrados = crimes_com_pop_mun[crimes_com_pop_mun['NATUREZA'].isin(selected_crimes)]
+
+    # Se o filtro resultar em um DataFrame vazio, retorna uma resposta vazia e válida
+    if dados_filtrados.empty:
+        geo_df_vazio = gdf_municipios_raw.copy()
+        geo_df_vazio['QUANTIDADE'] = 0
+        geo_df_vazio['TAXA_POR_100K'] = 0
+        return jsonify({
+            'geojson': json.loads(geo_df_vazio.to_json()),
+            'max_taxa': 0,
+            'taxa_media_estado': 0,
+            'total_municipios': 0
+        })
+
+    # Agrega (soma) os dados por município
+    dados_agregados = dados_filtrados.groupby('MUNICIPIO_NORM').agg({
+        'QUANTIDADE': 'sum',
+        'populacao': 'first',
+        'MUNICIPIO': 'first' # CORREÇÃO: Usar 'MUNICIPIO' (maiúsculo)
+    }).reset_index()
+    
+    # Renomeia a coluna para consistência, se desejar (opcional, mas boa prática)
+    dados_agregados.rename(columns={'MUNICIPIO': 'municipio'}, inplace=True)
+
+    # Recalcula a taxa com os dados somados
+    # Adiciona uma proteção contra divisão por zero
+    dados_agregados['TAXA_POR_100K'] = 0.0
+    mask_pop_valida = dados_agregados['populacao'] > 0
+    dados_agregados.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
+        (dados_agregados.loc[mask_pop_valida, 'QUANTIDADE'] / dados_agregados.loc[mask_pop_valida, 'populacao']) * 100000
+
+    # LÓGICA DE RANKING E MÉDIA
+    dados_agregados_sorted = dados_agregados.sort_values(by='TAXA_POR_100K', ascending=False).reset_index(drop=True)
+    dados_agregados_sorted['ranking'] = dados_agregados_sorted.index + 1
+    taxa_media_estado = dados_agregados_sorted[dados_agregados_sorted['populacao'] > 0]['TAXA_POR_100K'].mean()
+
+    # Junta o ranking de volta
+    dados_agregados = pd.merge(dados_agregados, dados_agregados_sorted[['MUNICIPIO_NORM', 'ranking']], on='MUNICIPIO_NORM', how='left')
+
+    # Faz o merge com o GeoDataFrame
+    geo_df_merged = gdf_municipios_raw.merge(dados_agregados, left_on='NM_MUN_NORM', right_on='MUNICIPIO_NORM', how='left')
+    geo_df_merged = geo_df_merged.fillna(0)
+    max_taxa = geo_df_merged['TAXA_POR_100K'].max()
+
+    return jsonify({
+        'geojson': json.loads(geo_df_merged.to_json()),
+        'max_taxa': max_taxa,
+        'taxa_media_estado': taxa_media_estado,
+        'total_municipios': len(dados_agregados)
+    })
+
+
+@app.route('/api/ais_map_data')
+def get_ais_map_data():
     crime_types_str = request.args.get('crimes')
     if not crime_types_str:
         return jsonify({"error": "Nenhum crime selecionado"}), 400
-    
     crime_types = crime_types_str.split(',')
-    dados_filtrados = crimes_com_pop_mun[crimes_com_pop_mun['NATUREZA'].isin(crime_types)]
 
-    dados_agregados = dados_filtrados.groupby('MUNICIPIO_NORM').agg({
+    # Usa o DataFrame pré-processado para AIS
+    dados_filtrados = crimes_com_pop_ais[crimes_com_pop_ais['NATUREZA'].isin(crime_types)]
+
+    # Agrega os dados por AIS
+    dados_agregados = dados_filtrados.groupby('AIS_MAPEADA').agg({
         'QUANTIDADE': 'sum',
         'populacao': 'first'
     }).reset_index()
 
+    # Recalcula a taxa
     dados_agregados['TAXA_POR_100K'] = (dados_agregados['QUANTIDADE'] / dados_agregados['populacao']) * 100000
 
-    # A CORREÇÃO ESTÁ AQUI: Adicionamos 'populacao' à lista de colunas
-    mapa_completo = gdf_municipios_raw.merge(dados_agregados[['MUNICIPIO_NORM', 'QUANTIDADE', 'TAXA_POR_100K', 'populacao']], left_on='NM_MUN_NORM', right_on='MUNICIPIO_NORM', how='left')
-    
-    mapa_completo[['QUANTIDADE', 'TAXA_POR_100K', 'populacao']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K', 'populacao']].fillna(0)
-    max_taxa = mapa_completo['TAXA_POR_100K'].max()
-    
-    return jsonify({'geojson': json.loads(mapa_completo.to_json()), 'max_taxa': max_taxa})
-
-
-
-@app.route('/api/ais_map_data') # Remove <crime_type> da URL
-def get_ais_map_data():
-    # 1. Pega a lista de crimes dos parâmetros da URL (igual à outra rota)
-    crime_types_str = request.args.get('crimes')
-    if not crime_types_str:
-        return jsonify({"error": "Nenhum crime selecionado"}), 400
-    
-    crime_types = crime_types_str.split(',')
-
-    # 2. Filtra o DataFrame de AIS para TODOS os crimes selecionados
-    dados_filtrados = crimes_com_pop_ais[crimes_com_pop_ais['NATUREZA'].isin(crime_types)]
-
-    # 3. Agrega (soma) os dados por AIS
-    # A única mudança real está aqui: o groupby é por 'AIS_MAPEADA'
-    dados_agregados = dados_filtrados.groupby('AIS_MAPEADA').agg({
-        'QUANTIDADE': 'sum',
-        'populacao': 'first' # A população da AIS é a mesma, então pegamos a primeira
-    }).reset_index()
-
-    # 4. Recalcula a taxa com os dados somados
-    dados_agregados['TAXA_POR_100K'] = (dados_agregados['QUANTIDADE'] / dados_agregados['populacao']) * 100000
-
-    # 5. O resto da lógica de merge e retorno continua igual, usando os dados agregados
-    mapa_completo = gdf_ais.merge(dados_agregados[['AIS_MAPEADA', 'QUANTIDADE', 'TAXA_POR_100K']], left_on='AIS', right_on='AIS_MAPEADA', how='left')
+    # Faz o merge com o GeoDataFrame de AIS
+    mapa_completo = gdf_ais.merge(dados_agregados, left_on='AIS', right_on='AIS_MAPEADA', how='left')
     mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']].fillna(0)
     max_taxa = mapa_completo['TAXA_POR_100K'].max()
     
@@ -168,6 +196,32 @@ def get_municipalities():
             'lon': row['centroid'].x
         })
     return jsonify(municipalities_list)
+
+@app.route('/api/history/municipio/<nome_municipio>')
+def get_history_for_municipio(nome_municipio):
+    selected_crimes = request.args.get('crimes').split(',')
+    
+    # CORREÇÃO: Usa df_crimes_graficos, que já tem a coluna 'DATA' como datetime
+    df_hist = df_crimes_graficos[(df_crimes_graficos['MUNICIPIO'] == nome_municipio) & (df_crimes_graficos['NATUREZA'].isin(selected_crimes))]
+    
+    if df_hist.empty:
+        return jsonify({'labels': [], 'data': []})
+
+    # Agrupa por ano e conta as ocorrências
+    history_counts = df_hist.groupby(df_hist['DATA'].dt.year).size()
+    
+    # Cria um range de todos os anos no dataset para garantir que não haja buracos
+    all_years = df_crimes_graficos['DATA'].dt.year.dropna().unique()
+    min_year, max_year = int(all_years.min()), int(all_years.max())
+    full_year_range = pd.RangeIndex(start=min_year, stop=max_year + 1, name='year')
+    
+    # Reindexa para preencher anos sem crimes com 0
+    history_counts = history_counts.reindex(full_year_range, fill_value=0)
+    
+    return jsonify({
+        'labels': history_counts.index.tolist(),
+        'data': history_counts.values.tolist()
+    })
 
 @app.route('/api/data/grafico_evolucao_anual')
 def get_data_grafico_evolucao_anual():
