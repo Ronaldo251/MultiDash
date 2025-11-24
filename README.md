@@ -119,9 +119,14 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 
 ---
 
-## 7. Autor
+## 7. Autores
 
 **Ronaldo de Oliveira Fraga**
 
 -   **LinkedIn:** [linkedin.com/in/ronaldo-fraga-49a11114a](https://www.linkedin.com/in/ronaldo-fraga-49a11114a/ )
 -   **GitHub:** [github.com/ronaldo251](https://github.com/ronaldo251 )
+  
+**Mirella Camilo Batista da Silva**
+
+-   **LinkedIn:** [linkedin.com/in/ronaldo-fraga-49a11114a](https://www.linkedin.com/in/mirellacamilo/ )
+-   **GitHub:** [github.com/ronaldo251](https://github.com/mirellacamilo )
