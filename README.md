@@ -148,5 +148,5 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
   
 **Mirella Camilo Batista da Silva**
 
--   **LinkedIn:** [linkedin.com/in/ronaldo-fraga-49a11114a](https://www.linkedin.com/in/mirellacamilo/ )
--   **GitHub:** [github.com/ronaldo251](https://github.com/mirellacamilo )
+-   **LinkedIn:** [linkedin.com/in/mirellacamilo](https://www.linkedin.com/in/mirellacamilo/ )
+-   **GitHub:** [github.com/mirellacamilo](https://github.com/mirellacamilo )
