@@ -23,14 +23,31 @@ O objetivo é fornecer uma ferramenta poderosa para gestores públicos, pesquisa
 
 ## 3. Funcionalidades Principais
 
-O dashboard foi construído com uma série de funcionalidades para permitir uma análise multidimensional:
+O dashboard foi construído com uma série de funcionalidades para permitir uma análise multidimensional e interativa:
 
--   **🗺️ Mapa Interativo:** Visualização coroplética das taxas de criminalidade (por 100 mil hab.) com a opção de alternar entre a granularidade de **Municípios** e **Áreas Integradas de Segurança (AIS)**.
--   **🔍 Busca e Destaque Geográfico:** Ferramenta de busca que permite ao usuário encontrar um município específico, aplicando zoom e destacando sua área no mapa.
--   **📊 Análise Comparativa de Gênero:** Gráficos que comparam diretamente a evolução da vitimização e o perfil etário entre homens e mulheres, tanto para crimes gerais quanto para homicídios.
--   **♀️ Análise Focada na Mulher:** Uma seção dedicada a explorar as particularidades dos crimes contra mulheres, incluindo a dinâmica temporal (dia/hora) e o perfil etário das vítimas de homicídio.
--   **🔮 Modelagem Preditiva:** Implementação de um modelo de **Regressão Linear** que projeta as tendências de vitimização para os próximos 1, 5 e 10 anos, servindo como um alerta estratégico.
--   **🖥️ Interface Responsiva e Intuitiva:** Uma sidebar retrátil e menus organizados que garantem uma experiência de usuário limpa e focada na exploração dos dados.
+-   **🗺️ Mapa Coroplético Avançado:**
+    -   Visualização da taxa de crimes (por 100 mil hab.) em duas granularidades: **Municípios** e **Áreas Integradas de Segurança (AIS)**.
+    -   **Seleção Múltipla de Crimes:** Permite a combinação de diferentes tipos de crime para uma análise agregada no mapa.
+    -   **Interação com Shift + Clique:** Selecione múltiplos municípios para análises comparativas e agregadas.
+    -   **Busca Inteligente:** Ferramenta de autocomplete para localizar, destacar e aplicar zoom a um município específico.
+    -   **Indicador de Carregamento:** Um *spinner* de carregamento fornece feedback visual ao usuário enquanto os dados geográficos são processados.
+
+-   **🔎 Painel de Análise Detalhada (Popup Arrastável):**
+    -   Ao selecionar um ou mais municípios, um painel de informações surge com dados contextuais.
+    -   **Análise Comparativa (Seleção Única):** Mostra o **Ranking Estadual** da taxa de crime, a **Média do Estado** e a variação percentual do município em relação a ela.
+    -   **Tendência Histórica (Seleção Única):** Renderiza um mini-gráfico com a evolução anual dos crimes para o município selecionado.
+    -   **Dados Agregados (Seleção Múltipla):** Calcula e exibe a soma de crimes, população total e a taxa de criminalidade para o grupo de municípios selecionados.
+
+-   **📊 Dashboard de Gráficos Interativos:**
+    -   **Popups Arrastáveis e Redimensionáveis:** Cada gráfico abre em sua própria janela, permitindo a comparação lado a lado de múltiplas visualizações.
+    -   **Análise Comparativa de Gênero:** Gráficos que contrastam a vitimização e o perfil etário entre homens e mulheres.
+    -   **Análise Focada na Mulher:** Seção dedicada a explorar as particularidades dos crimes contra mulheres (dinâmica temporal, meio empregado, etc.).
+    -   **Modelagem Preditiva:** Projeção de tendências futuras (1, 5 ou 10 anos) usando Regressão Linear.
+
+-   **📥 Funcionalidade de Exportação:**
+    -   **Exportar Gráfico (PNG):** Cada gráfico pode ser salvo como uma imagem `.png` com um único clique.
+    -   **Exportar Dados (CSV):** Os dados detalhados da seleção de municípios no mapa podem ser exportados para um arquivo `.csv` para análise externa.
+
 
 ---
 
@@ -48,12 +65,14 @@ O "cérebro" da aplicação foi construído em **Python** e é responsável por 
 -   **Cálculos Numéricos:** **NumPy** deu suporte a operações matemáticas e à criação de arrays para a modelagem preditiva.
 
 ### Frontend
-A interface do usuário foi desenvolvida para ser interativa e responsiva.
+A interface do usuário foi desenvolvida para ser interativa, responsiva e rica em funcionalidades.
 
--   **Estrutura e Estilo:** **HTML5** e **CSS3** foram usados para estruturar e estilizar a página.
--   **Interatividade:** **JavaScript** (com **jQuery**) foi o responsável por toda a interatividade, como o controle da sidebar, a criação dos pop-ups de gráficos e as chamadas à API do backend.
--   **Visualização de Gráficos:** **Chart.js** foi a biblioteca escolhida para renderizar os gráficos de forma dinâmica.
--   **Visualização de Mapas:** **Leaflet.js** foi a biblioteca utilizada para criar os mapas interativos.
+-   **Estrutura e Estilo:** **HTML5** e **CSS3** para a base da aplicação.
+-   **Visualização de Mapas:** **Leaflet.js** para a renderização dos mapas coropléticos e interações geográficas.
+-   **Visualização de Gráficos:** **Chart.js** com o plugin **Chart.js Datalabels** para criar gráficos dinâmicos e informativos.
+-   **Interatividade e DOM:** **JavaScript** puro e **jQuery** para manipulação de eventos, chamadas de API (AJAX) e interatividade geral.
+-   **Componentes de UI Avançados:** **jQuery UI** foi utilizado para implementar as funcionalidades de arrastar (`draggable`) e redimensionar (`resizable`) dos popups.
+
 
 ### Testes
 Para garantir a qualidade e a estabilidade do backend, foram criados testes automatizados.
@@ -116,6 +135,7 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 -   **Performance Geoespacial:** O cálculo de centroides e a dissolução de polígonos com GeoPandas são operações computacionalmente intensivas. Foi um grande aprendizado otimizar esses processos para que o carregamento inicial da aplicação fosse rápido.
 -   **Lógica de Frontend:** Integrar múltiplas bibliotecas JavaScript (Leaflet, Chart.js, jQuery) e garantir que os filtros e pop-ups funcionassem em harmonia exigiu uma estruturação cuidadosa do código.
 -   **Da Análise ao Insight:** O principal aprendizado foi a jornada de transformar uma simples análise técnica em uma narrativa fundamentada, conectando os padrões encontrados nos dados com a teoria acadêmica sobre criminologia.
+-   **Gerenciamento de Estado no Frontend:** Construir uma interface com múltiplos estados (seleção única, multisseleção, popups abertos, filtros ativos) sem um framework de frontend moderno (como React ou Vue) foi um desafio. Exigiu um gerenciamento cuidadoso de variáveis globais e eventos em jQuery para garantir que a interface se comportasse de forma consistente e sem bugs.
 
 ---
 
