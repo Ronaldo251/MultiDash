@@ -273,10 +273,8 @@
 <div id="crime-checkbox-list">
     {% set crime_list = ['HOMICIDIO DOLOSO'] + (crimes | reject('equalto', 'HOMICIDIO DOLOSO') | list) %}
     {% for crime in crime_list %}
-        <!-- Nova estrutura para cada item -->
         <div class="crime-checkbox-item">
             <input type="checkbox" class="crime-filter-checkbox" name="crime_type" value="{{ crime }}" id="crime-{{ loop.index }}" {% if crime == 'HOMICIDIO DOLOSO' %}checked{% endif %}>
-            <!-- Usamos um span em vez de label para evitar conflitos de clique -->
             <span>{{ crime }}</span>
         </div>
     {% endfor %}
@@ -404,7 +402,6 @@
     </div>
 </div>
     <div id="draggable-info-content" class="chart-popup-content" style="height: auto;">
-        <!-- Conteúdo da tabela -->
     </div>
     <div id="mini-chart-container" style="height: 100px; padding: 0 15px 15px 15px; display: none;">
         <canvas id="mini-chart-canvas"></canvas>
@@ -412,7 +409,6 @@
 </div>
 
     <script>
-    // --- LÓGICA DA SIDEBAR E ACORDIONS (sem alterações) ---
     const sidebar = document.getElementById("mySidebar");
     const mapContainer = document.getElementById("map");
     const openBtn = document.querySelector(".open-btn");
@@ -436,9 +432,6 @@
     }
     setupAccordion('.accordion');
     setupAccordion('.sub-accordion');
-
-    // --- LÓGICA DOS GRÁFICOS (sem alterações) ---
-    // ... (toda a sua lógica de gráficos, createChartPopup, etc., permanece aqui) ...
     Chart.register(ChartDataLabels);
     const activeCharts = {};
     $('.chart-checkbox').on('change', function() {
@@ -452,7 +445,6 @@
     $('.chart-filter').on('change', function() {
         const targetCharts = $(this).data('target-chart').split(',');
         targetCharts.forEach(chartId => {
-            // Se o gráfico alvo estiver aberto, fecha e reabre com o novo filtro
             if ($(`input[data-chart-id="${chartId}"]`).is(':checked')) {
                 destroyChartPopup(chartId);
                 createChartPopup(chartId);
@@ -472,12 +464,10 @@
         let apiUrl = `/api/data/grafico_${chartApiId}`;
         let queryParams = [];
 
-        // Adiciona o filtro de gênero, se houver
         if (genderFilter) {
             queryParams.push(`genero=${genderFilter}`);
         }
 
-        // Procura por filtros associados a este gráfico e os adiciona à URL
         $(`.chart-filter`).each(function() {
             const targets = $(this).data('target-chart').split(',');
             if (targets.includes(chartId) || targets.includes(chartApiId)) {
@@ -486,7 +476,7 @@
                 if (filterValue !== "0" || filterKey === 'filtro') {
                     queryParams.push(`${filterKey}=${filterValue}`);
                 }
-                // Adiciona o texto do filtro ao título do gráfico para clareza
+
                 if (filterKey === 'filtro') {
                     finalChartTitle += ` (${$(this).find('option:selected').text()})`;
                 }
@@ -496,7 +486,6 @@
             apiUrl += `?${queryParams.join('&')}`;
         }
 
-        // Cria o elemento HTML do popup
         const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
         $popup.find('.title').text(finalChartTitle);
         $('body').append($popup);
@@ -508,13 +497,12 @@
 
         try {
             const response = await fetch(apiUrl);
-            if (!response.ok) { // Verifica se a API retornou um erro
+            if (!response.ok) {
                 throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
             }
             const chartData = await response.json();
             const ctx = $popup.find('canvas')[0].getContext('2d');
-            
-            // Opções de configuração do Chart.js
+
             const chartOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -556,7 +544,6 @@
                 }
             };
 
-            // Aplica configurações específicas para certos gráficos
             if (chartApiId === 'comparativo_crime_log') {
                 chartOptions.scales.y.type = 'logarithmic';
             }
@@ -587,7 +574,7 @@
 
         } catch (error) {
             console.error("Erro ao buscar ou renderizar dados do gráfico:", error);
-            $popup.remove(); // Remove o popup se houver erro
+            $popup.remove();
         }
     }
 
@@ -599,13 +586,10 @@
         $('#popup-' + chartId).remove();
     }
 
-
-
-    // --- LÓGICA DO MAPA (VERSÃO CORRIGIDA E COM NOVAS FUNCIONALIDADES) ---
     try {
         $('#draggable-info-popup .close-btn').on('click', function() {
     $('#draggable-info-popup').hide();
-    // Opcional: também limpar a seleção no mapa ao fechar o popup
+
     clearAllSelections();
 });
         const map = L.map('map', { 
@@ -620,7 +604,6 @@
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }  ).addTo(map);
         
-        // --- Variáveis da Lógica do Mapa ---
         const mapLoader = document.getElementById('map-loader');
         let geojsonLayer;
         let selectedLayers = {};
@@ -629,14 +612,12 @@
         let legendControl = null;
         const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
         let currentZoomStep = 7;
-        let taxaMediaEstado = 0; // ADICIONE ESTA LINHA
-        let totalMunicipios = 0; // ADICIONE ESTA LINHA
+        let taxaMediaEstado = 0;
+        let totalMunicipios = 0;
 
-        // --- Detecção da Tecla Shift ---
         window.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftPressed = true; });
         window.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftPressed = false; });
 
-        // --- Funções Auxiliares do Mapa ---
         function getColor(taxa, max_taxa) {
             const valor = Number(taxa);
             if (isNaN(valor) || valor <= 0) return '#E5E5E5';
@@ -675,7 +656,6 @@
                 map.closePopup(aggregatedPopup);
                 aggregatedPopup = null;
             }
-            // Fecha também qualquer popup individual que possa estar aberto
             $('#draggable-info-popup').hide();
         }
 
@@ -686,7 +666,6 @@ async function showAggregatedPopup() {
     const $infoPopup = $('#draggable-info-popup');
     const $miniChartContainer = $('#mini-chart-container');
 
-    // Limpa o gráfico anterior e esconde o container
     if (miniChartInstance) {
         miniChartInstance.destroy();
         miniChartInstance = null;
@@ -702,7 +681,6 @@ async function showAggregatedPopup() {
     let popupTitle = '';
 
     if (selectionCount === 1) {
-        // --- LÓGICA PARA 1 MUNICÍPIO (permanece a mesma) ---
         const layer = Object.values(selectedLayers)[0];
         const props = layer.feature.properties;
         const name = props.name || "N/A";
@@ -724,7 +702,6 @@ async function showAggregatedPopup() {
             <tr><td>Ranking (Taxa):</td><td><b>${props.ranking || 'N/A'}º</b> de ${totalMunicipios}</td></tr>
         `;
 
-        // Lógica do mini gráfico (permanece a mesma)
         try {
             const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
             const crimesParam = selectedCrimes.map(c => encodeURIComponent(c)).join(',');
@@ -733,7 +710,7 @@ async function showAggregatedPopup() {
             const historyData = await response.json();
             $miniChartContainer.show();
             const ctx = document.getElementById('mini-chart-canvas').getContext('2d');
-            miniChartInstance = new Chart(ctx, { /* ... opções do gráfico ... */
+            miniChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { labels: historyData.labels, datasets: [{ label: 'Nº de Ocorrências', data: historyData.data, borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.1)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: true, text: 'Tendência Histórica (Nº Absoluto)', font: { size: 12 } } }, scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
@@ -741,7 +718,6 @@ async function showAggregatedPopup() {
         } catch (e) { console.error("Erro ao buscar histórico do município:", e); $miniChartContainer.hide(); }
 
     } else { 
-        // --- LÓGICA PARA MÚLTIPLOS MUNICÍPIOS (COM A MELHORIA) ---
         let totalQuantidade = 0, totalPopulacao = 0, municipioNames = [];
         for (const name in selectedLayers) {
             const props = selectedLayers[name].feature.properties;
@@ -751,7 +727,6 @@ async function showAggregatedPopup() {
         }
         const taxaAgregada = totalPopulacao > 0 ? (totalQuantidade / totalPopulacao) * 100000 : 0;
 
-        // NOVO: Calcula a variação da taxa agregada vs. a média do estado
         let variationHtml = '';
         if (taxaMediaEstado > 0) {
             const variation = ((taxaAgregada / taxaMediaEstado) - 1) * 100;
@@ -773,7 +748,6 @@ async function showAggregatedPopup() {
 
     popupContentHtml += '</table>';
 
-    // Preenche e mostra o popup (lógica inalterada)
     $infoPopup.find('.title').text(popupTitle);
     $infoPopup.find('#draggable-info-content').html(popupContentHtml);
     if (!$infoPopup.data('ui-draggable')) {
@@ -781,7 +755,7 @@ async function showAggregatedPopup() {
     }
     $infoPopup.show();
 }
-// NOVA FUNÇÃO PARA EXPORTAR CSV (VERSÃO CORRETA)
+
 function exportSelectionToCSV() {
     const selectionCount = Object.keys(selectedLayers).length;
     if (selectionCount === 0) {
@@ -793,11 +767,9 @@ function exportSelectionToCSV() {
     let rows = [];
     const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get().join(' + ');
 
-    // Define o cabeçalho do CSV
     rows.push(["Municipio", "Crimes_Selecionados", "Quantidade", "Populacao", "Taxa_por_100k", "Ranking_Estadual", "Total_Municipios_Ranking", "Media_Taxa_Estado"]);
 
     if (selectionCount === 1) {
-        // Exporta a linha do único município selecionado
         const layer = Object.values(selectedLayers)[0];
         const props = layer.feature.properties;
         let row = [
@@ -812,7 +784,6 @@ function exportSelectionToCSV() {
         ];
         rows.push(row);
     } else {
-        // Exporta uma linha para cada município na seleção
         for (const name in selectedLayers) {
             const props = selectedLayers[name].feature.properties;
             let row = [
@@ -829,13 +800,11 @@ function exportSelectionToCSV() {
         }
     }
 
-    // Converte o array de arrays em uma string CSV
     rows.forEach(function(rowArray) {
         let row = rowArray.join(",");
         csvContent += row + "\r\n";
     });
 
-    // Cria o link de download e simula o clique
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -846,7 +815,7 @@ function exportSelectionToCSV() {
 }
 
         async function updateMap() {
-    mapLoader.style.display = 'flex'; // MOSTRA O SPINNER
+    mapLoader.style.display = 'flex';
 
     if (geojsonLayer) map.removeLayer(geojsonLayer);
     clearAllSelections();
@@ -855,7 +824,7 @@ function exportSelectionToCSV() {
     
     if (selectedCrimes.length === 0) {
         if (legendControl) map.removeControl(legendControl);
-        mapLoader.style.display = 'none'; // ESCONDE O SPINNER se não houver nada a fazer
+        mapLoader.style.display = 'none'; 
         return; 
     }
 
@@ -880,7 +849,6 @@ function exportSelectionToCSV() {
             totalMunicipios = data.total_municipios || 0; 
         }
 
-        // ... (toda a lógica de atualizar legenda e desenhar o geoJson permanece a mesma) ...
         if (legendControl) map.removeControl(legendControl);
         legendControl = L.control({position: 'bottomleft'});
         legendControl.onAdd = function (map) {
@@ -931,13 +899,10 @@ function exportSelectionToCSV() {
     } catch (error) { 
         console.error('ERRO DENTRO DO updateMap:', error); 
     } finally {
-        mapLoader.style.display = 'none'; // ESCONDE O SPINNER (sempre, mesmo se der erro)
+        mapLoader.style.display = 'none';
     }
 }
 
-
-
-        // --- Gatilhos de Eventos ---
         $('#crime-checkbox-list, input[name="mapView"]').on('change', updateMap);
         map.on('click', clearAllSelections);
         map.on('dblclick', function() {
@@ -954,11 +919,10 @@ function exportSelectionToCSV() {
             }
         });
         $('#export-csv-btn').on('click', function(e) {
-    e.stopPropagation(); // Impede que o clique feche o popup ou o mapa
+    e.stopPropagation();
     exportSelectionToCSV();
 });
 
-        // --- Lógica do Autocomplete ---
         $.getJSON('/api/municipalities', function(data) {
             const municipalities = data.map(m => ({ label: m.name, value: m.name, lat: m.lat, lon: m.lon }));
             $("#municipio-search").autocomplete({
@@ -979,7 +943,6 @@ function exportSelectionToCSV() {
             });
         });
 
-        // --- Inicialização ---
         document.querySelectorAll('.accordion').forEach(acc => { acc.click(); });
         setTimeout(() => map.invalidateSize(), 400);
         updateMap();
