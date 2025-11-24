@@ -14,7 +14,7 @@ O objetivo é fornecer uma ferramenta poderosa para gestores públicos, pesquisa
 
 ## 2. Demonstração Visual
 
-![Demonstração do Dashboard](https://i.imgur.com/Vwy6Eu7.png )
+![Demonstração do Dashboard](https://i.imgur.com/ljWmK8U.png )
 
 
 *prévia da interface principal do dashboard, mostrando o mapa interativo e os gráficos na sidebar.*
