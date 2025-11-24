@@ -1,5 +1,3 @@
-# app.py (VERSÃO FINAL, COMPLETA E CORRIGIDA)
-
 import pandas as pd
 import geopandas as gpd
 from flask import Flask, jsonify, render_template, request
@@ -9,14 +7,12 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 import warnings
 
-# Ignora avisos técnicos para um console mais limpo
 from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
-pd.options.mode.chained_assignment = None # Desativa o SettingWithCopyWarning
+pd.options.mode.chained_assignment = None 
 
 app = Flask(__name__)
 
-# --- CARREGAMENTO E PROCESSAMENTO ---
 print("Iniciando o carregamento e processamento dos dados...")
 try:
     df_crimes_raw = pd.read_csv('crimes.csv', sep=',')
@@ -35,7 +31,6 @@ except Exception as e:
     print(f"ERRO ao ler os arquivos CSV. Verifique o separador (deve ser vírgula) e o número de colunas. Erro: {e}")
     exit()
 
-# --- PREPARAÇÃO DOS DADOS PARA OS GRÁFICOS (DataFrame PURO) ---
 df_crimes_graficos = df_crimes_raw.copy()
 df_crimes_graficos['DATA'] = pd.to_datetime(df_crimes_graficos['DATA'], dayfirst=True, errors='coerce')
 df_crimes_graficos['ANO'] = df_crimes_graficos['DATA'].dt.year
@@ -50,7 +45,7 @@ def get_clean_age_df(df_base):
     df_idade['IDADE_NUM'] = df_idade['IDADE_NUM'].astype(int)
     df_idade = df_idade[(df_idade['IDADE_NUM'] >= 0) & (df_idade['IDADE_NUM'] <= 110)]
     return df_idade
-# --- PREPARAÇÃO DOS DADOS PARA OS MAPAS ---
+
 def normalize_text(text_series):
     return text_series.str.upper().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
 
@@ -82,11 +77,6 @@ crimes_com_pop_ais['TAXA_POR_100K'] = (crimes_com_pop_ais['QUANTIDADE'] / crimes
 LISTA_DE_CRIMES = sorted(df_crimes_raw['NATUREZA'].dropna().unique().tolist())
 
 print("Processamento de dados concluído. Aplicação pronta.")
-# --- FIM DO PROCESSAMENTO ---
-
-# --- FUNÇÕES AUXILIARES ---
-
-# SOLUÇÃO: Adicionando a função que faltava
 def projetar_ano_incompleto(df_historico, ano_incompleto, ultimo_mes_registrado, colunas_grupo):
     df_ano_incompleto = df_historico[df_historico['ANO'] == ano_incompleto].copy()
     df_anos_anteriores = df_historico[df_historico['ANO'] < ano_incompleto].copy()
@@ -108,8 +98,6 @@ def get_filtered_df_for_charts():
     if genero_filtro == 'feminino':
         df_filtrado = df_filtrado[df_filtrado['GENERO_AGRUPADO'] == 'Feminino']
     return df_filtrado
-
-# --- ROTAS DE API E LÓGICA DO SERVIDOR ---
 
 @app.route('/')
 def index():
@@ -142,8 +130,6 @@ def get_municipalities():
         })
     return jsonify(municipalities_list)
 
-# --- ROTAS PARA GRÁFICOS ---
-
 @app.route('/api/data/grafico_evolucao_anual')
 def get_data_grafico_evolucao_anual():
     df_filtrado = get_filtered_df_for_charts()
@@ -152,7 +138,6 @@ def get_data_grafico_evolucao_anual():
     except (ValueError, TypeError):
         predict_years = 0
     
-    # SOLUÇÃO: Garante que não há nulos ANTES de converter o tipo
     df_analise = df_filtrado.dropna(subset=['ANO', 'MES', 'GENERO_AGRUPADO'])
     df_analise = df_analise[pd.to_numeric(df_analise['ANO'], errors='coerce').notna()]
     df_analise.loc[:, 'ANO'] = df_analise['ANO'].astype(int)
@@ -292,7 +277,6 @@ def get_data_grafico_3b():
         datasets.append({'label': 'Feminino', 'data': df_pivot['Feminino'].tolist(), 'backgroundColor': 'rgba(255, 99, 132, 0.7)'})
     return jsonify({'labels': df_pivot.index.tolist(), 'datasets': datasets})
 
-# --- ROTAS DO GRÁFICO 6 (Meio Empregado) ---
 def get_meio_empregado_df(filtro_genero='todos'):
     df_filtrado = df_crimes_graficos.copy()
     if filtro_genero == 'feminino':
@@ -326,7 +310,6 @@ def get_data_grafico_6b():
         datasets.append({'label': meio, 'data': evolucao_meio[meio].tolist(), 'borderColor': cores[i % len(cores)], 'fill': False, 'tension': 0.1})
     return jsonify({'labels': [str(int(ano)) for ano in evolucao_meio.index.tolist()], 'datasets': datasets})
 
-# --- ROTAS DO GRÁFICO 7 (Crimes de Ódio) ---
 @app.route('/api/data/grafico_evolucao_odio')
 def get_data_grafico_7a():
     df_filtrado = get_filtered_df_for_charts()
@@ -356,7 +339,6 @@ def get_data_grafico_7b():
         'datasets': [{'label': 'Total de Vítimas', 'data': contagem_orientacao.values.tolist(), 'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']}]
     })
 
-# ROTA PARA EVOLUÇÃO ANUAL DE HOMICÍDIOS (HxM)
 @app.route('/api/data/grafico_evolucao_anual_homicidios')
 def get_data_grafico_evolucao_anual_homicidios():
     df_filtrado = get_filtered_df_for_charts()
@@ -375,29 +357,23 @@ def get_data_grafico_evolucao_anual_homicidios():
         
     return jsonify({'labels': [str(int(ano)) for ano in dados_pivot.index.tolist()], 'datasets': datasets})
 
-
-# ROTA PARA DENSIDADE ETÁRIA DE HOMICÍDIOS (Pode ser filtrada por gênero)
 @app.route('/api/data/grafico_densidade_etaria_homicidios')
 def get_data_grafico_densidade_etaria_homicidios():
-    # 1. Pega o DataFrame já filtrado por gênero (se o parâmetro 'genero' foi passado)
     df_filtrado = get_filtered_df_for_charts() 
     
-    # 2. Aplica o filtro de homicídios
     naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
     df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
 
-    # 3. Continua com a lógica de idade
     df_idade = get_clean_age_df(df_homicidios)
     if df_idade.empty: 
         return jsonify({'labels': [], 'datasets': []})
         
     contagem_por_idade = df_idade.groupby('IDADE_NUM').size().reindex(range(111), fill_value=0)
     
-    # Define a cor baseada no filtro de gênero
-    cor_borda = 'rgba(199, 0, 57, 1)' # Vermelho para mulheres
+    cor_borda = 'rgba(199, 0, 57, 1)' 
     cor_fundo = 'rgba(199, 0, 57, 0.5)'
     if request.args.get('genero') != 'feminino':
-        cor_borda = 'rgba(75, 192, 192, 1)' # Verde/Azul para geral
+        cor_borda = 'rgba(75, 192, 192, 1)'
         cor_fundo = 'rgba(75, 192, 192, 0.5)'
 
     return jsonify({
@@ -413,7 +389,6 @@ def get_data_grafico_densidade_etaria_homicidios():
     })
 
 
-# ROTA PARA MEIO EMPREGADO EM HOMICÍDIOS (Pode ser filtrada por gênero)
 @app.route('/api/data/grafico_proporcao_meio_empregado_homicidios')
 def get_data_grafico_proporcao_meio_empregado_homicidios():
     df_filtrado = get_filtered_df_for_charts()
@@ -432,24 +407,19 @@ def get_data_grafico_proporcao_meio_empregado_homicidios():
     })
 @app.route('/api/data/grafico_comparativo_idade_genero_homicidios')
 def get_data_grafico_comparativo_idade_genero_homicidios():
-    # 1. Pega o DataFrame completo (sem filtro de gênero inicial)
     df_filtrado = df_crimes_graficos.copy()
     
-    # 2. Aplica o filtro de homicídios
     naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
     df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
 
-    # 3. Limpa os dados de idade e gênero
-    df_idade = get_clean_age_df(df_homicidios) # Reutiliza a função auxiliar
+    df_idade = get_clean_age_df(df_homicidios) 
     df_idade.dropna(subset=['GENERO_AGRUPADO'], inplace=True)
 
     if df_idade.empty:
         return jsonify({'labels': [], 'datasets': []})
 
-    # 4. Agrupa por idade e gênero
     dados_grafico = df_idade.groupby(['IDADE_NUM', 'GENERO_AGRUPADO']).size().unstack(fill_value=0)
-    
-    # Garante que ambas as colunas existam para evitar erros
+
     if 'Masculino' not in dados_grafico: dados_grafico['Masculino'] = 0
     if 'Feminino' not in dados_grafico: dados_grafico['Feminino'] = 0
     
@@ -462,6 +432,6 @@ def get_data_grafico_comparativo_idade_genero_homicidios():
             {'label': 'Feminino', 'data': dados_grafico['Feminino'].tolist(), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)', 'fill': True, 'tension': 0.4}
         ]
     })
-# BLOCO FINAL PARA INICIAR O SERVIDOR
+
 if __name__ == '__main__':
     app.run(debug=True)

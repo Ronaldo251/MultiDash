@@ -1,9 +1,7 @@
-# test_app.py (VERSÃO ATUALIZADA E FOCADA NA TESE)
 
 import pytest
 from app import app as flask_app
 
-# --- CONFIGURAÇÃO DO AMBIENTE DE TESTE (sem alterações) ---
 
 @pytest.fixture
 def app():
@@ -14,8 +12,6 @@ def app():
 def client(app):
     """Cria um 'cliente' de teste, um navegador simulado para fazer requisições."""
     return app.test_client()
-
-# --- TESTES DAS ROTAS PRINCIPAIS E DE MAPA (sem alterações) ---
 
 def test_pagina_inicial(client):
     """Testa se a página inicial (/) carrega corretamente."""
@@ -46,45 +42,35 @@ def test_api_mapa_ais(client):
     json_data = response.get_json()
     assert 'geojson' in json_data and 'max_taxa' in json_data
 
-# --- TESTES DAS NOVAS ROTAS DE GRÁFICOS (FOCADAS NA TESE) ---
-
-# Usamos 'parametrize' para testar todas as novas rotas com o mesmo código.
 @pytest.mark.parametrize("endpoint", [
-    # Gráficos da categoria "Crimes Gerais (Comparativo HxM)"
+
     "/api/data/grafico_evolucao_anual",
     "/api/data/grafico_evolucao_anual_homicidios",
     "/api/data/grafico_comparativo_idade_genero_homicidios",
 
-    # Gráficos da categoria "Crimes Contra Mulheres"
     "/api/data/grafico_densidade_etaria_homicidios",
     "/api/data/grafico_proporcao_meio_empregado_homicidios",
     "/api/data/grafico_crimes_mulher_dia_hora",
 ])
 def test_novas_apis_de_graficos(client, endpoint):
     """Testa todas as APIs de gráficos da nova estrutura focada."""
-    # Testa a rota sem filtro de gênero
     response_geral = client.get(endpoint)
     assert response_geral.status_code == 200
     json_data_geral = response_geral.get_json()
     assert 'labels' in json_data_geral and 'datasets' in json_data_geral
 
-    # Testa a mesma rota com o filtro de gênero, para garantir que ela aceita o parâmetro
     response_fem = client.get(f"{endpoint}?genero=feminino")
     assert response_fem.status_code == 200
     json_data_fem = response_fem.get_json()
     assert 'labels' in json_data_fem and 'datasets' in json_data_fem
 
-# --- TESTES REMOVIDOS (ROTAS ANTIGAS) ---
+# --- T(ROTAS ANTIGAS) ---
 
-# Os testes para as rotas abaixo foram removidos porque as rotas foram comentadas
-# ou substituídas no app.py.
 # - /api/data/grafico_distribuicao_raca
 # - /api/data/grafico_comparativo_crime_log
 # - /api/data/grafico_proporcao_genero_crime
 # - /api/data/grafico_evolucao_odio
 # - etc.
-
-# --- TESTE DE UMA FUNCIONALIDADE ESPECÍFICA (OPCIONAL) ---
 
 def test_api_evolucao_anual_homicidios_estrutura(client):
     """
@@ -95,7 +81,6 @@ def test_api_evolucao_anual_homicidios_estrutura(client):
     assert response.status_code == 200
     json_data = response.get_json()
     
-    # Verifica se a resposta contém os dois datasets esperados
     labels = [d['label'] for d in json_data['datasets']]
     assert 'Masculino' in labels
     assert 'Feminino' in labels
