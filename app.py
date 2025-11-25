@@ -104,6 +104,43 @@ def get_filtered_df_for_charts():
 def index():
     return render_template('index.html', crimes=LISTA_DE_CRIMES)
 
+@app.route('/api/correlation_data')
+def get_correlation_data():
+    crime1 = request.args.get('crime1')
+    crime2 = request.args.get('crime2')
+
+    if not crime1 or not crime2:
+        return jsonify({"error": "Dois crimes devem ser fornecidos"}), 400
+
+    # Filtra o DataFrame para conter apenas os dois crimes de interesse
+    df_filtered = df_crimes_graficos[df_crimes_graficos['NATUREZA'].isin([crime1, crime2])]
+
+    # Se não houver nenhum registro para os crimes selecionados, retorna vazio
+    if df_filtered.empty:
+        return jsonify([])
+
+    # Agrupa por ano e por natureza do crime, contando as ocorrências
+    yearly_counts = df_filtered.groupby(['ANO', 'NATUREZA']).size().unstack(fill_value=0)
+
+    # --- CORREÇÃO PRINCIPAL ---
+    # Garante que ambas as colunas de crime existam no DataFrame.
+    # Se um crime não ocorreu, uma coluna de zeros será criada para ele.
+    if crime1 not in yearly_counts.columns:
+        yearly_counts[crime1] = 0
+    if crime2 not in yearly_counts.columns:
+        yearly_counts[crime2] = 0
+        
+    # Prepara os dados para o formato do gráfico de dispersão
+    scatter_data = []
+    for year, row in yearly_counts.iterrows():
+        scatter_data.append({
+            'x': int(row[crime1]),  # Converte para int padrão do Python
+            'y': int(row[crime2]),  # Converte para int padrão do Python
+            'year': int(year)       # 'year' já estava sendo convertido, o que é bom
+        })
+        
+    return jsonify(scatter_data)
+
 @app.route('/api/municipality_map_data')
 def get_municipality_map_data():
     selected_crimes = request.args.get('crimes').split(',')

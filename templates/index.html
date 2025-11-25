@@ -378,7 +378,7 @@
                 data-chart-type="line"> Evolução Anual (Homicídios)</label></li>
 
     <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_idade_genero" data-chart-title="Comparativo de Idade por Gênero" data-chart-type="line"> Comparativo de Idade por Gênero</label></li>
-
+    <li><label><input type="checkbox" id="correlation-checkbox"> Análise de Correlação</label></li>
 
     <!-- 
     <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_crime_log" data-chart-title="Quantidade de Vítimas por Tipo de Crime" data-chart-type="bar"> Quantidade por Tipo de Crime</label></li>
@@ -476,8 +476,148 @@
         <canvas id="mini-chart-canvas"></canvas>
     </div>
 </div>
-
+<div id="correlation-popup" class="chart-popup" style="display: none; width: 600px; height: 550px;">
+    <div class="chart-popup-header">
+        <span class="title">Análise de Correlação entre Crimes</span>
+        <div class="actions">
+            <span class="close-btn">&times;</span>
+        </div>
+    </div>
+    <div class="chart-popup-content">
+        <!-- Controles de Seleção -->
+        <div id="correlation-controls" style="display: flex; justify-content: space-around; margin-bottom: 15px;">
+            <div>
+                <label for="correlation-crime1">Crime Eixo X:</label>
+                <select id="correlation-crime1" class="correlation-select">
+                    <option value="">Selecione...</option>
+                    {% for crime in crimes %}
+                        <option value="{{ crime }}">{{ crime }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="correlation-crime2">Crime Eixo Y:</label>
+                <select id="correlation-crime2" class="correlation-select">
+                    <option value="">Selecione...</option>
+                    {% for crime in crimes %}
+                        <option value="{{ crime }}">{{ crime }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <!-- Canvas para o Gráfico -->
+        <div style="position: relative; height: calc(100% - 50px);">
+            <canvas id="correlation-chart-canvas"></canvas>
+        </div>
+    </div>
+</div>
     <script>
+        let correlationChartInstance = null;
+
+// Abre/Fecha o popup de correlação
+$('#correlation-checkbox').on('change', function() {
+    if (this.checked) {
+        $('#correlation-popup').show();
+        $('#correlation-popup').draggable({ handle: ".chart-popup-header" }).resizable();
+    } else {
+        $('#correlation-popup').hide();
+        if (correlationChartInstance) {
+            correlationChartInstance.destroy();
+            correlationChartInstance = null;
+        }
+        // Limpa os selects
+        $('.correlation-select').val('');
+    }
+});
+
+// Fecha o popup pelo botão 'X'
+$('#correlation-popup .close-btn').on('click', function() {
+    $('#correlation-checkbox').prop('checked', false).trigger('change');
+});
+
+// Gatilho para (re)desenhar o gráfico quando um crime é selecionado
+$('.correlation-select').on('change', function() {
+    const crime1 = $('#correlation-crime1').val();
+    const crime2 = $('#correlation-crime2').val();
+
+    // Só desenha o gráfico se ambos os crimes forem selecionados
+    if (crime1 && crime2) {
+        createCorrelationChart(crime1, crime2);
+    }
+});
+
+// Função para criar o gráfico (ainda vazia, vamos conectar ao backend no próximo passo)
+async function createCorrelationChart(crime1, crime2) {
+    console.log(`1. Chamando API para correlação entre ${crime1} e ${crime2}`);
+    
+    if (correlationChartInstance) {
+        correlationChartInstance.destroy();
+    }
+
+    try {
+        const apiUrl = `/api/correlation_data?crime1=${encodeURIComponent(crime1)}&crime2=${encodeURIComponent(crime2)}`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`Erro na API de correlação: ${response.status}`);
+        }
+        const scatterData = await response.json();
+        console.log("2. Dados de correlação recebidos:", scatterData);
+
+        const ctx = document.getElementById('correlation-chart-canvas').getContext('2d');
+        correlationChartInstance = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: `${crime1} (X) vs ${crime2} (Y)`,
+                    data: scatterData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: `Nº de Ocorrências: ${crime1}`
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: `Nº de Ocorrências: ${crime2}`
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Correlação Anual: ${crime1} vs ${crime2}`
+                    },
+                    // Tooltip customizado para mostrar o ano
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const point = context.raw;
+                                return `Ano: ${point.year} | ${crime1}: ${point.x} | ${crime2}: ${point.y}`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: false // Gráficos de dispersão ficam poluídos com datalabels
+                    }
+                }
+            }
+        });
+        console.log("3. Gráfico de correlação renderizado.");
+
+    } catch (error) {
+        console.error("Erro ao criar gráfico de correlação:", error);
+    }
+}
     const sidebar = document.getElementById("mySidebar");
     const mapContainer = document.getElementById("map");
     const openBtn = document.querySelector(".open-btn");
