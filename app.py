@@ -31,8 +31,9 @@ except Exception as e:
     print(f"ERRO ao ler os arquivos CSV. Verifique o separador (deve ser vírgula) e o número de colunas. Erro: {e}")
     exit()
 
+df_crimes_raw['DATA'] = pd.to_datetime(df_crimes_raw['DATA'], dayfirst=True, errors='coerce')
+df_crimes_raw.dropna(subset=['DATA'], inplace=True)
 df_crimes_graficos = df_crimes_raw.copy()
-df_crimes_graficos['DATA'] = pd.to_datetime(df_crimes_graficos['DATA'], dayfirst=True, errors='coerce')
 df_crimes_graficos['ANO'] = df_crimes_graficos['DATA'].dt.year
 df_crimes_graficos['MES'] = df_crimes_graficos['DATA'].dt.month
 mapeamento_genero = {'MASCULINO': 'Masculino', 'HOMEM TRANS': 'Masculino', 'FEMININO': 'Feminino', 'MULHER TRANS': 'Feminino', 'TRAVESTI': 'Feminino'}
@@ -106,42 +107,25 @@ def index():
 @app.route('/api/municipality_map_data')
 def get_municipality_map_data():
     selected_crimes = request.args.get('crimes').split(',')
-    
-    # Filtra o DataFrame JÁ PROCESSADO para os crimes selecionados
-    dados_filtrados = crimes_com_pop_mun[crimes_com_pop_mun['NATUREZA'].isin(selected_crimes)]
-
-    # Se o filtro resultar em um DataFrame vazio, retorna uma resposta vazia e válida
-    if dados_filtrados.empty:
-        geo_df_vazio = gdf_municipios_raw.copy()
-        geo_df_vazio['QUANTIDADE'] = 0
-        geo_df_vazio['TAXA_POR_100K'] = 0
-        return jsonify({
-            'geojson': json.loads(geo_df_vazio.to_json()),
-            'max_taxa': 0,
-            'taxa_media_estado': 0,
-            'total_municipios': 0
-        })
-
-    dados_agregados = dados_filtrados.groupby('MUNICIPIO_NORM').agg({
-        'QUANTIDADE': 'sum',
-        'populacao': 'first',
-        'MUNICIPIO': 'first' 
-    }).reset_index()
-
-    dados_agregados.rename(columns={'MUNICIPIO': 'municipio'}, inplace=True)
-
-    dados_agregados['TAXA_POR_100K'] = 0.0
-    mask_pop_valida = dados_agregados['populacao'] > 0
-    dados_agregados.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
-        (dados_agregados.loc[mask_pop_valida, 'QUANTIDADE'] / dados_agregados.loc[mask_pop_valida, 'populacao']) * 100000
-
-    dados_agregados_sorted = dados_agregados.sort_values(by='TAXA_POR_100K', ascending=False).reset_index(drop=True)
-    dados_agregados_sorted['ranking'] = dados_agregados_sorted.index + 1
-    taxa_media_estado = dados_agregados_sorted[dados_agregados_sorted['populacao'] > 0]['TAXA_POR_100K'].mean()
-
-    dados_agregados = pd.merge(dados_agregados, dados_agregados_sorted[['MUNICIPIO_NORM', 'ranking']], on='MUNICIPIO_NORM', how='left')
-
-    geo_df_merged = gdf_municipios_raw.merge(dados_agregados, left_on='NM_MUN_NORM', right_on='MUNICIPIO_NORM', how='left')
+    ano_inicio = int(request.args.get('ano_inicio'))
+    ano_fim = int(request.args.get('ano_fim'))
+    df_periodo = df_crimes_raw[
+        (df_crimes_raw['DATA'].dt.year >= ano_inicio) &
+        (df_crimes_raw['DATA'].dt.year <= ano_fim)
+    ]
+    df_filtered = df_periodo[df_periodo['NATUREZA'].isin(selected_crimes)]
+    crime_counts = df_filtered.groupby('MUNICIPIO').size().reset_index(name='QUANTIDADE')
+    merged_df = pd.merge(df_populacao, crime_counts, left_on='municipio', right_on='MUNICIPIO', how='left').drop(columns=['MUNICIPIO'])
+    merged_df['QUANTIDADE'] = merged_df['QUANTIDADE'].fillna(0).astype(int)
+    merged_df['TAXA_POR_100K'] = 0.0
+    mask_pop_valida = merged_df['populacao'] > 0
+    merged_df.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
+        (merged_df.loc[mask_pop_valida, 'QUANTIDADE'] / merged_df.loc[mask_pop_valida, 'populacao']) * 100000
+    merged_df_sorted = merged_df.sort_values(by='TAXA_POR_100K', ascending=False).reset_index(drop=True)
+    merged_df_sorted['ranking'] = merged_df_sorted.index + 1
+    taxa_media_estado = merged_df_sorted[merged_df_sorted['populacao'] > 0]['TAXA_POR_100K'].mean()
+    merged_df = pd.merge(merged_df, merged_df_sorted[['municipio', 'ranking']], on='municipio', how='left')
+    geo_df_merged = gdf_municipios_raw.merge(merged_df, left_on='name', right_on='municipio', how='left')
     geo_df_merged = geo_df_merged.fillna(0)
     max_taxa = geo_df_merged['TAXA_POR_100K'].max()
 
@@ -149,7 +133,7 @@ def get_municipality_map_data():
         'geojson': json.loads(geo_df_merged.to_json()),
         'max_taxa': max_taxa,
         'taxa_media_estado': taxa_media_estado,
-        'total_municipios': len(dados_agregados)
+        'total_municipios': len(merged_df)
     })
 
 
@@ -305,6 +289,13 @@ def get_data_grafico_crimes_mulher_dia_hora():
         if dia in crimes_por_dia_hora.index:
             datasets.append({'label': dia, 'data': crimes_por_dia_hora.loc[dia].reindex(range(24), fill_value=0).tolist(), 'borderColor': cores[i], 'backgroundColor': cores[i], 'fill': False, 'tension': 0.1})
     return jsonify({'labels': list(range(24)), 'datasets': datasets})
+
+@app.route('/api/year_range')
+def get_year_range():
+    """Retorna o ano mínimo e máximo presentes no dataset."""
+    min_year = int(df_crimes_graficos['ANO'].min())
+    max_year = int(df_crimes_graficos['ANO'].max())
+    return jsonify({'min_year': min_year, 'max_year': max_year})
 
 @app.route('/api/data/grafico_distribuicao_raca')
 def get_data_grafico_distribuicao_raca():
@@ -511,5 +502,32 @@ def get_data_grafico_comparativo_idade_genero_homicidios():
         ]
     })
 
+@app.route('/api/heatmap_map_data')
+def get_heatmap_map_data():
+    selected_crimes_str = request.args.get('crimes')
+    if not selected_crimes_str:
+        return jsonify({'points': [], 'max_intensity': 0})
+    selected_crimes = selected_crimes_str.split(',')
+    ano_inicio = int(request.args.get('ano_inicio'))
+    ano_fim = int(request.args.get('ano_fim'))
+    df_periodo = df_crimes_raw[(df_crimes_raw['DATA'].dt.year >= ano_inicio) & (df_crimes_raw['DATA'].dt.year <= ano_fim)]
+    df_filtered = df_periodo[df_periodo['NATUREZA'].isin(selected_crimes)]
+    if df_filtered.empty:
+        return jsonify({'points': [], 'max_intensity': 0})
+    crime_counts = df_filtered.groupby('MUNICIPIO').size().reset_index(name='INTENSIDADE')
+    heatmap_data = pd.merge(municipios_com_centroide, crime_counts, left_on='name', right_on='MUNICIPIO', how='inner')
+    if heatmap_data.empty:
+        return jsonify({'points': [], 'max_intensity': 0})
+    max_intensity = np.sqrt(heatmap_data['INTENSIDADE'].max())
+
+    points = [
+        [row['centroid'].y, row['centroid'].x, row['INTENSIDADE']]
+        for index, row in heatmap_data.iterrows()
+    ]
+    
+    return jsonify({
+        'points': points,
+        'max_intensity': float(max_intensity) if max_intensity > 0 else 0
+    })
 if __name__ == '__main__':
     app.run(debug=True)

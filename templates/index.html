@@ -7,6 +7,7 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
@@ -33,17 +34,16 @@
     padding-top: 20px;
     box-shadow: 3px 0 6px rgba(0,0,0,0.2); 
     transform: translateX(calc(-1 * var(--sidebar-width)));
-    
-    /* ADIÇÃO: Espaçamento no final da sidebar */
+
     padding-bottom: 50px; 
-    box-sizing: border-box; /* Garante que o padding não aumente a altura total */
+    box-sizing: border-box; 
 }
 .variation {
     font-weight: bold;
     padding-left: 8px;
 }
-.variation.positive { color: #e74c3c; } /* Vermelho para aumento */
-.variation.negative { color: #2ecc71; } /* Verde para queda */
+.variation.positive { color: #e74c3c; } 
+.variation.negative { color: #2ecc71; } 
         .sidebar.open { transform: translateX(0); }
         #map.sidebar-open { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
         .open-btn {
@@ -62,10 +62,20 @@
         .accordion.active::after { transform: rotate(90deg); }
         
         .panel, .sub-panel {
-            display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-out; overflow: hidden;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
         }
-        .panel.open, .sub-panel.open { grid-template-rows: 1fr; }
-        .panel-content, .sub-panel-content { min-height: 0; padding: 0 18px; }
+
+        .panel.open, .sub-panel.open {
+            max-height: 1000px; 
+            transition: max-height 0.5s ease-in;
+        }
+
+        .panel-content, .sub-panel-content {
+            padding: 0 18px;
+            padding-bottom: 15px;
+        }
         .panel.open { margin-bottom: 5px; }
 
         .sub-accordion {
@@ -90,15 +100,15 @@
             z-index: 1005; border-radius: 8px; display: none; resize: both; overflow: auto;
         }
         #draggable-info-popup {
-    width: 320px; /* Largura inicial fixa */
-    height: auto; /* Altura se ajusta ao conteúdo */
-    /* Ele já herda o resto das propriedades de .chart-popup */
+    width: 320px; 
+    height: auto; 
+
 }
-        /* Estilo do cabeçalho do popup MODIFICADO para usar Flexbox */
+
 .chart-popup-header {
-    display: flex; /* Ativa o Flexbox */
-    justify-content: space-between; /* Empurra o título para a esquerda e os botões para a direita */
-    align-items: center; /* Alinha tudo verticalmente no centro */
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
     padding: 10px;
     cursor: move;
     background-color: #f1f1f1;
@@ -108,37 +118,37 @@
     border-top-right-radius: 8px;
 }
 
-/* Título dentro do cabeçalho */
+
 .chart-popup-header .title {
     font-weight: bold;
-    white-space: nowrap; /* Impede que o título quebre linha */
+    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adiciona "..." se o título for muito longo */
+    text-overflow: ellipsis;
 }
 
-/* Container para os botões de ação */
+
 .chart-popup-header .actions {
     display: flex;
     align-items: center;
 }
 
-/* Botão de fechar MODIFICADO - removemos o float */
+
 .chart-popup-header .close-btn {
     cursor: pointer;
     font-weight: bold;
-    font-size: 20px; /* Ajuste de tamanho para consistência */
-    margin-left: 10px; /* Espaço entre ele e o botão de CSV */
+    font-size: 20px; 
+    margin-left: 10px; 
     padding: 0 5px;
 }
 
-/* Botão de exportação MODIFICADO - removemos o float */
+
 .export-chart-btn {
     cursor: pointer;
     font-weight: bold;
     background: none;
-    border: 1px solid #ccc; /* Adiciona uma borda para melhor visualização */
+    border: 1px solid #ccc; 
     border-radius: 4px;
-    font-size: 12px; /* Tamanho de fonte menor */
+    font-size: 12px; 
     padding: 2px 6px;
     line-height: 1.5;
 }
@@ -148,8 +158,25 @@
 }
 
         .chart-popup-content { padding: 15px; height: calc(100% - 45px); }
-        .map-view-selector { display: flex; justify-content: space-around; padding: 10px; background-color: #34495e; }
-        .map-view-selector label { color: white; }
+        .map-view-selector {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #34495e;
+            text-align: center;
+        }
+
+        .map-view-selector label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            color: white;
+            font-size: 13px;
+        }
+
+        .map-view-selector input[type="radio"] {
+        }
         
         .ui-autocomplete {
             z-index: 1003 !important;
@@ -157,29 +184,28 @@
         #crime-checkbox-list {
     height: 150px; 
     overflow-y: auto; 
-    background-color: #ecf0f1; /* Fundo branco/cinza claro, como o restante */
+    background-color: #ecf0f1; 
     padding: 10px; 
     border-radius: 4px; 
-    color: #333; /* Cor do texto escura para contrastar com o fundo claro */
+    color: #333; 
 }
 
 .crime-checkbox-item {
-    display: flex; /* Usa Flexbox para alinhar os itens */
-    align-items: center; /* Alinha verticalmente o checkbox e o texto */
-    margin-bottom: 8px; /* Espaçamento entre os itens */
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 8px; 
 }
 
 .crime-checkbox-item input[type="checkbox"] {
-    margin-right: 8px; /* Espaço entre o checkbox e o texto */
-    /* Opcional: Aumenta um pouco o tamanho do checkbox */
+    margin-right: 8px; 
     width: 15px;
     height: 15px;
 }
 
 .crime-checkbox-item span {
-    color: #2c3e50; /* Cor do texto escura, igual ao fundo da sidebar */
+    color: #2c3e50; 
     font-size: 14px;
-    /* Remove margens padrão que podem estar atrapalhando */
+
     margin: 0; 
     padding: 0;
 }
@@ -194,33 +220,33 @@
 
 .legend-item {
     display: flex;
-    align-items: center; /* Alinha o quadrado e o texto verticalmente */
-    margin-bottom: 5px; /* Espaço entre as linhas */
+    align-items: center; 
+    margin-bottom: 5px; 
 }
 
 .legend-item:last-child {
-    margin-bottom: 0; /* Remove a margem do último item */
+    margin-bottom: 0; 
 }
 
 .legend-color-box {
     width: 18px;
     height: 18px;
     margin-right: 8px;
-    border: 1px solid #777; /* Adiciona uma borda sutil */
+    border: 1px solid #777; 
 }
 #draggable-info-content table {
     width: 100%;
-    border-collapse: collapse; /* Remove espaços entre as células */
+    border-collapse: collapse; 
 }
 
 #draggable-info-content td {
-    padding: 4px 0; /* Espaçamento vertical */
+    padding: 4px 0;
     font-size: 14px;
 }
 
 #draggable-info-content td:first-child {
-    font-weight: bold; /* Deixa o rótulo (ex: "Taxa/100k:") em negrito */
-    padding-right: 10px; /* Espaço entre o rótulo e o valor */
+    font-weight: bold; 
+    padding-right: 10px; 
 }
 #map-loader {
     position: absolute;
@@ -228,8 +254,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.7); /* Fundo branco semitransparente */
-    z-index: 1999; /* Acima do mapa, abaixo dos popups */
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 1999;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -238,8 +264,8 @@
 .spinner {
     width: 60px;
     height: 60px;
-    border: 8px solid #f3f3f3; /* Cinza claro */
-    border-top: 8px solid #3498db; /* Azul do nosso tema */
+    border: 8px solid #f3f3f3; 
+    border-top: 8px solid #3498db; 
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -248,7 +274,39 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
+.reset-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.reset-btn:hover {
+    background-color: #c0392b;
+}
+.toggle-btn {
+    padding: 2px 8px;
+    font-size: 12px;
+    background-color: #566573;
+    color: white;
+    border: 1px solid #888;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.toggle-btn:hover {
+    background-color: #808B96;
+}
+.custom-tooltip {
+    min-width: 150px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #999;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
     </style>
 </head>
 <body>
@@ -268,17 +326,28 @@
                 <div class="map-view-selector">
                     <label><input type="radio" name="mapView" value="municipality" checked> Municípios</label>
                     <label><input type="radio" name="mapView" value="ais"> AIS</label>
+                    <label><input type="radio" name="mapView" value="heatmap"> Mapa de Calor</label>
                 </div>
-                <label style="margin-top: 15px;">Selecione os Tipos de Crime:</label>
-<div id="crime-checkbox-list">
-    {% set crime_list = ['HOMICIDIO DOLOSO'] + (crimes | reject('equalto', 'HOMICIDIO DOLOSO') | list) %}
-    {% for crime in crime_list %}
-        <div class="crime-checkbox-item">
-            <input type="checkbox" class="crime-filter-checkbox" name="crime_type" value="{{ crime }}" id="crime-{{ loop.index }}" {% if crime == 'HOMICIDIO DOLOSO' %}checked{% endif %}>
-            <span>{{ crime }}</span>
-        </div>
-    {% endfor %}
-</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <label style="margin: 0;">Selecione os Tipos de Crime:</label>
+                    <button id="toggle-all-crimes-btn" class="toggle-btn">Todos</button>
+                </div>
+                <div id="crime-checkbox-list">
+                    
+                    {% set crime_list = ['HOMICIDIO DOLOSO'] + (crimes | reject('equalto', 'HOMICIDIO DOLOSO') | list) %}
+                    {% for crime in crime_list %}
+                        <div class="crime-checkbox-item">
+                            <input type="checkbox" class="crime-filter-checkbox" name="crime_type" value="{{ crime }}" id="crime-{{ loop.index }}" {% if crime == 'HOMICIDIO DOLOSO' %}checked{% endif %}>
+                            <span>{{ crime }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button id="reset-all-filters-btn" class="reset-btn">Limpar e Resetar Tudo</button>
+                <div style="margin-top: 20px;">
+                    <label for="year-range-slider" style="margin-bottom: 10px;">Filtrar por Período:</label>
+                    <p id="year-range-label" style="text-align: center; font-weight: bold; color: white; margin: 5px 0;"></p>
+                    <div id="year-range-slider" style="margin: 0 10px;"></div>
+                </div>
             </div>
         </div>
         <button class="accordion">Visualizar Gráficos</button>
@@ -434,6 +503,14 @@
     setupAccordion('.sub-accordion');
     Chart.register(ChartDataLabels);
     const activeCharts = {};
+
+    $('#toggle-all-crimes-btn').on('click', function() {
+    const checkboxes = $('.crime-filter-checkbox');
+    const allChecked = checkboxes.length === checkboxes.filter(':checked').length;
+    checkboxes.prop('checked', !allChecked);
+    checkboxes.first().trigger('change'); 
+});
+
     $('.chart-checkbox').on('change', function() {
         const chartId = $(this).data('chart-id');
         if (this.checked) {
@@ -502,6 +579,7 @@
             }
             const chartData = await response.json();
             const ctx = $popup.find('canvas')[0].getContext('2d');
+            console.log("7. Contexto do Canvas obtido.");
 
             const chartOptions = {
                 responsive: true,
@@ -605,7 +683,10 @@
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }  ).addTo(map);
         
         const mapLoader = document.getElementById('map-loader');
+        let comparisonList = []; 
+        let comparisonChart = null; 
         let geojsonLayer;
+        let heatLayer;
         let selectedLayers = {};
         let shiftPressed = false;
         let aggregatedPopup = null;
@@ -660,6 +741,25 @@
         }
 
         let miniChartInstance = null;
+
+function resetAll() {
+    clearAllSelections();
+
+    $('.chart-checkbox:checked').each(function() {
+        $(this).prop('checked', false);
+        const chartId = $(this).data('chart-id');
+        destroyChartPopup(chartId);
+    });
+
+    $('.crime-filter-checkbox').prop('checked', false);
+
+    $('#municipio-search').val('');
+
+    updateMap();
+    
+    map.flyTo([-5.2, -39.5], 7);
+}
+$('#reset-all-filters-btn').on('click', resetAll);
 
 async function showAggregatedPopup() {
     const selectionCount = Object.keys(selectedLayers).length;
@@ -756,6 +856,49 @@ async function showAggregatedPopup() {
     $infoPopup.show();
 }
 
+function updateURLParameters() {
+    const selectedCrimes = $('.crime-filter-checkbox:checked')
+        .map(function() { return $(this).val(); })
+        .get();
+    const mapView = $('input[name="mapView"]:checked').val();
+
+    const params = new URLSearchParams();
+    if (selectedCrimes.length > 0) {
+        params.set('crimes', selectedCrimes.join(','));
+    }
+    params.set('view', mapView);
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    history.pushState(null, '', newUrl);
+}
+function applyFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const crimesFromUrl = params.get('crimes');
+    const viewFromUrl = params.get('view');
+
+    let filtersApplied = false;
+
+    if (crimesFromUrl) {
+
+        $('.crime-filter-checkbox').prop('checked', false);
+        const crimesArray = crimesFromUrl.split(',');
+        crimesArray.forEach(crimeName => {
+
+            $(`.crime-filter-checkbox[value="${crimeName}"]`).prop('checked', true);
+        });
+        filtersApplied = true;
+    }
+
+    if (viewFromUrl) {
+
+        $(`input[name="mapView"][value="${viewFromUrl}"]`).prop('checked', true);
+        filtersApplied = true;
+    }
+
+    if (filtersApplied) {
+        updateMap();
+    }
+}
 function exportSelectionToCSV() {
     const selectionCount = Object.keys(selectedLayers).length;
     if (selectionCount === 0) {
@@ -816,15 +959,17 @@ function exportSelectionToCSV() {
 
         async function updateMap() {
     mapLoader.style.display = 'flex';
-
     if (geojsonLayer) map.removeLayer(geojsonLayer);
-    clearAllSelections();
+    if (heatLayer) map.removeLayer(heatLayer);
+    
+    clearAllSelections(); 
 
     const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
     
     if (selectedCrimes.length === 0) {
         if (legendControl) map.removeControl(legendControl);
-        mapLoader.style.display = 'none'; 
+        mapLoader.style.display = 'none';
+        updateURLParameters();
         return; 
     }
 
@@ -835,73 +980,189 @@ function exportSelectionToCSV() {
         totalMunicipios = 0;
     }
 
-    const apiUrl = `/api/${mapView}_map_data?crimes=${selectedCrimes.map(c => encodeURIComponent(c)).join(',')}`;
+    const yearValues = $("#year-range-slider").slider("values");
+    const ano_inicio = yearValues[0];
+    const ano_fim = yearValues[1];
+
+    const params = new URLSearchParams({
+        crimes: selectedCrimes.join(','),
+        ano_inicio: ano_inicio,
+        ano_fim: ano_fim
+    });
+
+    const apiUrl = `/api/${mapView}_map_data?${params.toString()}`;
     
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) throw new Error(`Erro na API do mapa: ${response.status}`);
         const data = await response.json();
         
-        const geojsonData = data.geojson;
-        const max_taxa = data.max_taxa;
-        if (mapView === 'municipality') {
-            taxaMediaEstado = data.taxa_media_estado || 0; 
-            totalMunicipios = data.total_municipios || 0; 
-        }
-
         if (legendControl) map.removeControl(legendControl);
-        legendControl = L.control({position: 'bottomleft'});
-        legendControl.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'legend');
-            const colors = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
-            const grades = [0, max_taxa * 0.16, max_taxa * 0.33, max_taxa * 0.50, max_taxa * 0.66, max_taxa * 0.83];
-            div.innerHTML += '<b>Taxa / 100k hab.</b>  ';
-            for (let i = 0; i < grades.length; i++) {
-                const from = grades[i];
-                const to = grades[i + 1];
-                const labelText = to ? `${from.toFixed(0)} &ndash; ${to.toFixed(0)}` : `${from.toFixed(0)}+`;
-                div.innerHTML += `<div class="legend-item"><div class="legend-color-box" style="background:${colors[i]}"></div><span>${labelText}</span></div>`;
-            }
-            return div;
-        };
-        legendControl.addTo(map);
 
-        geojsonLayer = L.geoJson(geojsonData, {
-            style: (feature) => getFeatureStyle(feature, max_taxa),
-            onEachFeature: function (feature, layer) {
-                layer.on('click', function(e) {
-                    L.DomEvent.stopPropagation(e);
-                    const layerName = e.target.feature.properties.name;
+        if (mapView === 'municipality' || mapView === 'ais') {
 
-                    if (!shiftPressed) {
-                        clearAllSelections();
-                        selectedLayers[layerName] = e.target;
-                        applyHighlight(e.target);
-                    } else {
-                        if (selectedLayers[layerName]) {
-                            removeHighlight(e.target);
-                            delete selectedLayers[layerName];
-                        } else {
-                            selectedLayers[layerName] = e.target;
-                            applyHighlight(e.target);
-                        }
-                    }
-                    
-                    const group = new L.featureGroup(Object.values(selectedLayers));
-                    if (Object.keys(selectedLayers).length > 0) {
-                        map.flyToBounds(group.getBounds().pad(0.1), { maxZoom: 10 });
-                        showAggregatedPopup();
-                    }
-                });
+            const geojsonData = data.geojson;
+            const max_taxa = data.max_taxa;
+            
+            if (mapView === 'municipality') {
+                taxaMediaEstado = data.taxa_media_estado || 0; 
+                totalMunicipios = data.total_municipios || 0; 
             }
+
+            legendControl = L.control({position: 'bottomleft'});
+            legendControl.onAdd = function (map) {
+                const div = L.DomUtil.create('div', 'legend');
+                const colors = ['#B8E0D2', '#A0C4FF', '#C9A0DC', '#FFFF00', '#FFA500', '#FF0000'];
+                const grades = [0, max_taxa * 0.16, max_taxa * 0.33, max_taxa * 0.50, max_taxa * 0.66, max_taxa * 0.83];
+                div.innerHTML += '<b>Taxa / 100k hab.</b>  ';
+                for (let i = 0; i < grades.length; i++) {
+                    const from = grades[i];
+                    const to = grades[i + 1];
+                    const labelText = to ? `${from.toFixed(0)} &ndash; ${to.toFixed(0)}` : `${from.toFixed(0)}+`;
+                    div.innerHTML += `<div class="legend-item"><div class="legend-color-box" style="background:${colors[i]}"></div><span>${labelText}</span></div>`;
+                }
+                return div;
+            };
+            legendControl.addTo(map);
+
+            geojsonLayer = L.geoJson(geojsonData, {
+                style: (feature) => getFeatureStyle(feature, max_taxa),
+                onEachFeature: function (feature, layer) {
+                    const props = feature.properties;
+                    const id_prop = mapView === 'ais' ? 'AIS' : 'name';
+                    const name = props[id_prop] || "N/A";
+                    const tooltipContent = `
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid #ccc;">${name}</div>
+                        <table style="width: 100%;">
+                            <tr>
+                                <td style="font-weight: bold; padding-right: 5px;">Taxa/100k:</td>
+                                <td style="text-align: right;">${Number(props.TAXA_POR_100K || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; padding-right: 5px;">Ocorrências:</td>
+                                <td style="text-align: right;">${Number(props.QUANTIDADE || 0).toLocaleString('pt-BR')}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; padding-right: 5px;">População:</td>
+                                <td style="text-align: right;">${Number(props.populacao || 0).toLocaleString('pt-BR')}</td>
+                            </tr>
+                        </table>
+                    `;
+
+                    layer.bindTooltip(tooltipContent, {
+                        sticky: true,
+                        direction: 'top',
+                        offset: [0, -10],
+                        className: 'custom-tooltip'
+                    });
+
+                    layer.on({
+    mouseover: function (e) {
+        const targetLayer = e.target;
+        const isSelected = selectedLayers[props.name] || comparisonList.some(item => item.name === props.name);
+        if (!isSelected) {
+            targetLayer.setStyle({ weight: 3, color: '#666', dashArray: '' });
+        }
+        targetLayer.bringToFront();
+    },
+    mouseout: function (e) {
+        const targetLayer = e.target;
+        const isSelected = selectedLayers[props.name] || comparisonList.some(item => item.name === props.name);
+        if (!isSelected) {
+            geojsonLayer.resetStyle(targetLayer);
+        }
+    },
+    click: function(e) {
+        L.DomEvent.stopPropagation(e);
+        const layerName = e.target.feature.properties.name;
+        const layer = e.target;
+
+        if (e.originalEvent.ctrlKey || e.originalEvent.metaKey) {
+    console.log("MODO COMPARAÇÃO (Ctrl+Clique) ATIVADO");
+    clearAllSelections();
+
+    const index = comparisonList.findIndex(item => item.name === layerName);
+    
+    if (index > -1) {
+        comparisonList.splice(index, 1);
+        geojsonLayer.resetStyle(layer);
+        console.log(`Removido: ${layerName}. Itens na lista: ${comparisonList.length}`);
+    } else { 
+        if (comparisonList.length < 2) {
+            comparisonList.push({ name: layerName, layer: layer });
+            applyHighlight(layer);
+            console.log(`Adicionado: ${layerName}. Itens na lista: ${comparisonList.length}`);
+        } else {
+            alert("Você só pode comparar 2 municípios por vez. Remova um para adicionar outro.");
+        }
+    }
+    if (comparisonChart) {
+        destroyComparisonChart();
+    }
+    
+    if (comparisonList.length === 2) {
+        createComparisonChart(comparisonList[0].name, comparisonList[1].name);
+    }
+    
+    return; 
+}
+        else {
+            console.log("MODO SELEÇÃO NORMAL ATIVADO"); 
+            if (comparisonList.length > 0) {
+                destroyComparisonChart();
+            }
+
+            if (!shiftPressed) {
+                clearAllSelections();
+                selectedLayers[layerName] = layer;
+                applyHighlight(layer);
+            } else {
+                if (selectedLayers[layerName]) {
+                    removeHighlight(layer);
+                    delete selectedLayers[layerName];
+                } else {
+                    selectedLayers[layerName] = layer;
+                    applyHighlight(layer);
+                }
+            }
+            
+            if (Object.keys(selectedLayers).length > 0) {
+                showAggregatedPopup();
+            } else {
+                $('#draggable-info-popup').hide();
+            }
+        }
+    }
+});
+                }
+            }).addTo(map);
+
+        } else if (mapView === 'heatmap') {
+    const raw_points = data.points;
+
+    if (raw_points.length > 0) {
+        const transformed_points = raw_points.map(p => {
+            return [p[0], p[1], Math.sqrt(p[2])]; 
+        });
+
+        heatLayer = L.heatLayer(transformed_points, {
+            radius: 30,
+            blur: 0,
+            maxZoom: 11,
+            max: data.max_intensity, 
+            gradient: { 0.7: '#F89441', 0.8: '#E5534F', 1.0: '#C70039' } 
         }).addTo(map);
+    }
+}
 
     } catch (error) { 
         console.error('ERRO DENTRO DO updateMap:', error); 
     } finally {
         mapLoader.style.display = 'none';
+        updateURLParameters(); 
     }
 }
+
 
         $('#crime-checkbox-list, input[name="mapView"]').on('change', updateMap);
         map.on('click', clearAllSelections);
@@ -922,6 +1183,199 @@ function exportSelectionToCSV() {
     e.stopPropagation();
     exportSelectionToCSV();
 });
+document.querySelectorAll('.accordion').forEach(acc => { acc.click(); });
+setTimeout(() => map.invalidateSize(), 400);
+$.getJSON('/api/year_range', function(range) {
+    const minYear = range.min_year;
+    const maxYear = range.max_year;
+
+    $("#year-range-slider").slider({
+        range: true,
+        min: minYear,
+        max: maxYear,
+        values: [minYear, maxYear],
+        slide: function(event, ui) {
+            $("#year-range-label").text(ui.values[0] + " - " + ui.values[1]);
+        },
+        stop: function(event, ui) {
+            $("#year-range-label").text(ui.values[0] + " - " + ui.values[1]);
+            updateMap();
+        }
+    });
+    $("#year-range-label").text(minYear + " - " + maxYear);
+    const hasUrlParams = window.location.search && window.location.search.includes('crimes');
+    if (hasUrlParams) {
+        applyFiltersFromURL(); 
+    } else {
+        updateMap(); 
+    }
+});
+
+function applyFiltersFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const crimesFromUrl = params.get('crimes');
+    const viewFromUrl = params.get('view');
+    const anoInicioFromUrl = params.get('ano_inicio');
+    const anoFimFromUrl = params.get('ano_fim');
+
+    let filtersApplied = false;
+
+    if (crimesFromUrl) {
+        $('.crime-filter-checkbox').prop('checked', false);
+        const crimesArray = crimesFromUrl.split(',');
+        crimesArray.forEach(crimeName => {
+            $(`.crime-filter-checkbox[value="${crimeName}"]`).prop('checked', true);
+        });
+        filtersApplied = true;
+    }
+
+    if (viewFromUrl) {
+        $(`input[name="mapView"][value="${viewFromUrl}"]`).prop('checked', true);
+        filtersApplied = true;
+    }
+    
+    if (anoInicioFromUrl && anoFimFromUrl) {
+        const slider = $("#year-range-slider");
+        slider.slider("values", [parseInt(anoInicioFromUrl), parseInt(anoFimFromUrl)]);
+        $("#year-range-label").text(anoInicioFromUrl + " - " + anoFimFromUrl);
+        filtersApplied = true;
+    }
+
+    if (filtersApplied) {
+        updateMap();
+    }
+}
+
+async function createComparisonChart(mun1, mun2) {
+    console.log(`1. Iniciando createComparisonChart para ${mun1} e ${mun2}`);
+    destroyComparisonChart();
+
+    const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
+    if (selectedCrimes.length === 0) {
+        console.error("Nenhum crime selecionado, abortando.");
+        return;
+    }
+    const crimesParam = selectedCrimes.map(c => encodeURIComponent(c)).join(',');
+    console.log("2. Crimes para buscar:", crimesParam);
+
+    try {
+        const [response1, response2] = await Promise.all([
+            fetch(`/api/history/municipio/${mun1}?crimes=${crimesParam}`),
+            fetch(`/api/history/municipio/${mun2}?crimes=${crimesParam}`)
+        ]);
+        console.log("3. Respostas da API recebidas:", response1.status, response2.status);
+
+        const data1 = await response1.json();
+        const data2 = await response2.json();
+        console.log("4. Dados JSON processados:", { data1, data2 });
+
+        const chartId = 'comparison-chart';
+        const chartTitle = `Comparativo: ${mun1} vs ${mun2}`;
+        const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
+        $popup.find('.title').text(chartTitle);
+        $('body').append($popup);
+        console.log("5. Popup HTML criado e adicionado ao body.");
+
+        $popup.draggable({ handle: ".chart-popup-header" }).resizable();
+        $popup.find('.close-btn').on('click', destroyComparisonChart);
+        
+        $popup.show();
+        console.log("6. Popup deve estar visível agora. Verificando se o elemento existe:", $popup.length > 0);
+
+        const allLabels = [...new Set([...data1.labels, ...data2.labels])].sort((a, b) => a - b);
+
+        const map1 = Object.fromEntries(data1.labels.map((label, i) => [label, data1.data[i]]));
+        const map2 = Object.fromEntries(data2.labels.map((label, i) => [label, data2.data[i]]));
+
+        const finalData1 = allLabels.map(label => map1[label] || 0);
+        const finalData2 = allLabels.map(label => map2[label] || 0);
+
+        console.log("9. Dados finais para o gráfico:", { labels: allLabels, data1: finalData1, data2: finalData2 });
+
+
+        const ctx = $popup.find('canvas')[0].getContext('2d');
+        console.log("7. Contexto do Canvas obtido.");
+
+        comparisonChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: allLabels,
+        datasets: [
+            {
+                label: mun1,
+                data: finalData1,
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                fill: false,
+                tension: 0.1,
+                spanGaps: true 
+            },
+            {
+                label: mun2,
+                data: finalData2,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                fill: false,
+                tension: 0.1,
+                spanGaps: true 
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { 
+            y: { 
+                beginAtZero: true 
+            } 
+        },
+        plugins: { 
+            legend: { 
+                display: true 
+            },
+            datalabels: {
+                display: false
+            }
+        }
+    }
+});
+console.log("8. Gráfico Chart.js instanciado com sucesso!");
+
+    } catch (error) {
+        console.error("ERRO FATAL DENTRO DE createComparisonChart:", error);
+    }
+}
+
+
+
+function destroyComparisonChart() {
+    if (comparisonChart) {
+        comparisonChart.destroy();
+        comparisonChart = null;
+    }
+    $('#popup-comparison-chart').remove();
+
+    comparisonList.forEach(item => geojsonLayer.resetStyle(item.layer));
+    comparisonList = [];
+}
+
+function updateURLParameters() {
+    const selectedCrimes = $('.crime-filter-checkbox:checked').map(function() { return $(this).val(); }).get();
+    const mapView = $('input[name="mapView"]:checked').val();
+    const yearValues = $("#year-range-slider").slider("values"); 
+
+    const params = new URLSearchParams();
+    if (selectedCrimes.length > 0) {
+        params.set('crimes', selectedCrimes.join(','));
+    }
+    params.set('view', mapView);
+    params.set('ano_inicio', yearValues[0]);
+    params.set('ano_fim', yearValues[1]);
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    history.pushState(null, '', newUrl);
+}
+
 
         $.getJSON('/api/municipalities', function(data) {
             const municipalities = data.map(m => ({ label: m.name, value: m.name, lat: m.lat, lon: m.lon }));
@@ -943,10 +1397,7 @@ function exportSelectionToCSV() {
             });
         });
 
-        document.querySelectorAll('.accordion').forEach(acc => { acc.click(); });
-        setTimeout(() => map.invalidateSize(), 400);
-        updateMap();
-
+        
     } catch (e) { console.error("ERRO FATAL NA INICIALIZAÇÃO DO SCRIPT:", e); }
 </script>
 
