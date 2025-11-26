@@ -23,14 +23,18 @@ O objetivo é fornecer uma ferramenta poderosa para gestores públicos, pesquisa
 
 ## 3. Funcionalidades Principais
 
-O dashboard foi construído com uma série de funcionalidades para permitir uma análise multidimensional e interativa:
+O dashboard foi construído com uma série de ferramentas interativas que permitem uma análise multidimensional, interativa e profunda dos dados de criminalidade:
 
--   **🗺️ Mapa Coroplético Avançado:**
-    -   Visualização da taxa de crimes (por 100 mil hab.) em duas granularidades: **Municípios** e **Áreas Integradas de Segurança (AIS)**.
-    -   **Seleção Múltipla de Crimes:** Permite a combinação de diferentes tipos de crime para uma análise agregada no mapa.
-    -   **Interação com Shift + Clique:** Selecione múltiplos municípios para análises comparativas e agregadas.
-    -   **Busca Inteligente:** Ferramenta de autocomplete para localizar, destacar e aplicar zoom a um município específico.
-    -   **Indicador de Carregamento:** Um *spinner* de carregamento fornece feedback visual ao usuário enquanto os dados geográficos são processados.
+-   **🗺️ Mapa Interativo Avançado:**
+    -   **Múltiplas Camadas:** Visualização dos dados em três modos distintos:
+        -   **Mapa Coroplético (Municípios/AIS):** Análise da taxa de crimes (por 100 mil hab.).
+        -   **Mapa de Calor (Heatmap):** Identificação de "hotspots" baseada na densidade de ocorrências.
+    -   **Filtros Combinados:** Permite a combinação de múltiplos tipos de crime e a seleção de um **intervalo de anos** específico, recalculando dinamicamente todas as visualizações.
+    -   **Interação Multimodo:**
+        -   **Seleção Múltipla (Shift+Clique):** Para agregar dados de vários municípios.
+        -   **Comparação Direta (Ctrl+Clique):** Para gerar um gráfico comparativo entre dois municípios.
+    -   **Busca Inteligente:** Ferramenta de autocomplete para localizar, destacar e aplicar zoom a um município.
+    -   **Feedback Visual:** Um **indicador de carregamento** informa o usuário enquanto os dados são processados, e um **tooltip informativo** aparece ao passar o mouse sobre as áreas do mapa.
 
 -   **🔎 Painel de Análise Detalhada (Popup Arrastável):**
     -   Ao selecionar um ou mais municípios, um painel de informações surge com dados contextuais.
@@ -38,16 +42,15 @@ O dashboard foi construído com uma série de funcionalidades para permitir uma 
     -   **Tendência Histórica (Seleção Única):** Renderiza um mini-gráfico com a evolução anual dos crimes para o município selecionado.
     -   **Dados Agregados (Seleção Múltipla):** Calcula e exibe a soma de crimes, população total e a taxa de criminalidade para o grupo de municípios selecionados.
 
--   **📊 Dashboard de Gráficos Interativos:**
+-   **📊 Dashboard de Gráficos Dinâmicos:**
     -   **Popups Arrastáveis e Redimensionáveis:** Cada gráfico abre em sua própria janela, permitindo a comparação lado a lado de múltiplas visualizações.
-    -   **Análise Comparativa de Gênero:** Gráficos que contrastam a vitimização e o perfil etário entre homens e mulheres.
-    -   **Análise Focada na Mulher:** Seção dedicada a explorar as particularidades dos crimes contra mulheres (dinâmica temporal, meio empregado, etc.).
+    -   **🔬 Ferramenta de Correlação:** Um gráfico de dispersão (scatter plot) dinâmico que permite ao usuário investigar a correlação anual entre quaisquer dois tipos de crime, ajudando a descobrir relações complexas nos dados.
+    -   **Análise de Perfis:** Gráficos detalhados sobre o perfil das vítimas (gênero, idade, raça) e a natureza dos crimes.
     -   **Modelagem Preditiva:** Projeção de tendências futuras (1, 5 ou 10 anos) usando Regressão Linear.
 
 -   **📥 Funcionalidade de Exportação:**
-    -   **Exportar Gráfico (PNG):** Cada gráfico pode ser salvo como uma imagem `.png` com um único clique.
-    -   **Exportar Dados (CSV):** Os dados detalhados da seleção de municípios no mapa podem ser exportados para um arquivo `.csv` para análise externa.
-
+    -   **Exportar Gráfico (PNG):** Salve qualquer visualização de gráfico como uma imagem `.png`.
+    -   **Exportar Dados (CSV):** Exporte os dados detalhados da sua seleção no mapa para análise externa.
 
 ---
 
@@ -56,22 +59,23 @@ O dashboard foi construído com uma série de funcionalidades para permitir uma 
 O projeto foi desenvolvido com uma arquitetura full-stack, separando a lógica de backend da interface do usuário.
 
 ### Backend
-O "cérebro" da aplicação foi construído em **Python** e é responsável por todo o processamento de dados.
+O "cérebro" da aplicação foi construído em **Python** e é responsável por todo o processamento de dados em tempo real, conforme as solicitações do usuário.
 
 -   **Framework Web:** **Flask** foi utilizado para criar o servidor e a API RESTful que entrega os dados processados para o frontend.
--   **Manipulação de Dados:** A biblioteca **Pandas** foi a espinha dorsal para todo o processo de ETL (Extração, Transformação e Carga), incluindo limpeza, filtragem e agregação dos dados.
+-   **Manipulação de Dados:** A biblioteca **Pandas** foi a espinha dorsal para todo o processo de ETL (Extração, Transformação e Carga), incluindo limpeza, filtragem dinâmica por período, agregações complexas e cálculos de correlação entre diferentes variáveis.
 -   **Análise Geoespacial:** **GeoPandas** foi essencial para manipular os arquivos `.geojson`, calcular as taxas de criminalidade por área e "dissolver" os polígonos dos municípios para criar a visualização por AIS.
 -   **Machine Learning:** **Scikit-learn** foi usado para implementar o modelo de Regressão Linear para a funcionalidade de previsão de tendências.
--   **Cálculos Numéricos:** **NumPy** deu suporte a operações matemáticas e à criação de arrays para a modelagem preditiva.
+-   **Cálculos Numéricos:** **NumPy** deu suporte a operações matemáticas, como a transformação de escala (raiz quadrada) para a normalização da intensidade do mapa de calor.
+
 
 ### Frontend
-A interface do usuário foi desenvolvida para ser interativa, responsiva e rica em funcionalidades.
+A interface do usuário foi desenvolvida para ser interativa, responsiva e rica em funcionalidades, permitindo a exploração de dados em tempo real.
 
--   **Estrutura e Estilo:** **HTML5** e **CSS3** para a base da aplicação.
--   **Visualização de Mapas:** **Leaflet.js** para a renderização dos mapas coropléticos e interações geográficas.
--   **Visualização de Gráficos:** **Chart.js** com o plugin **Chart.js Datalabels** para criar gráficos dinâmicos e informativos.
--   **Interatividade e DOM:** **JavaScript** puro e **jQuery** para manipulação de eventos, chamadas de API (AJAX) e interatividade geral.
--   **Componentes de UI Avançados:** **jQuery UI** foi utilizado para implementar as funcionalidades de arrastar (`draggable`) e redimensionar (`resizable`) dos popups.
+-   **Estrutura e Estilo:** **HTML5** e **CSS3** (com Flexbox e animações) para a base da aplicação.
+-   **Visualização de Mapas:** **Leaflet.js** com o plugin **Leaflet.heat** para criar as camadas interativas, incluindo os mapas de polígonos (choropleth) e o mapa de calor (heatmap).
+-   **Visualização de Gráficos:** **Chart.js** com o plugin **Chart.js Datalabels** para renderizar múltiplos tipos de gráficos dinâmicos, incluindo linha, pizza e dispersão (scatter plot).
+-   **Interatividade e DOM:** **JavaScript** (ES6+) e **jQuery** para manipulação de eventos, chamadas assíncronas à API (AJAX com `fetch`) e orquestração da interatividade geral.
+-   **Componentes de UI Avançados:** **jQuery UI** foi utilizado para implementar o slider de intervalo de anos e as funcionalidades de arrastar (`draggable`) e redimensionar (`resizable`) dos popups.
 
 
 ### Testes
@@ -93,8 +97,8 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/ronaldo251/nome-do-seu-repositorio.git
-    cd nome-do-seu-repositorio
+    git clone https://github.com/ronaldo251/analise_criminal_mulheres_ceara.git
+    cd analise_criminal_mulheres_ceara
     ```
 
 2.  **Crie e ative um ambiente virtual (recomendado ):**
@@ -131,11 +135,12 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 
 ## 6. Desafios e Aprendizados
 
--   **Qualidade dos Dados:** O maior desafio inicial foi lidar com os dados brutos, que continham inconsistências e valores ausentes. O processo de limpeza e padronização com Pandas foi fundamental para a viabilidade do projeto.
--   **Performance Geoespacial:** O cálculo de centroides e a dissolução de polígonos com GeoPandas são operações computacionalmente intensivas. Foi um grande aprendizado otimizar esses processos para que o carregamento inicial da aplicação fosse rápido.
--   **Lógica de Frontend:** Integrar múltiplas bibliotecas JavaScript (Leaflet, Chart.js, jQuery) e garantir que os filtros e pop-ups funcionassem em harmonia exigiu uma estruturação cuidadosa do código.
--   **Da Análise ao Insight:** O principal aprendizado foi a jornada de transformar uma simples análise técnica em uma narrativa fundamentada, conectando os padrões encontrados nos dados com a teoria acadêmica sobre criminologia.
--   **Gerenciamento de Estado no Frontend:** Construir uma interface com múltiplos estados (seleção única, multisseleção, popups abertos, filtros ativos) sem um framework de frontend moderno (como React ou Vue) foi um desafio. Exigiu um gerenciamento cuidadoso de variáveis globais e eventos em jQuery para garantir que a interface se comportasse de forma consistente e sem bugs.
+-   **Qualidade dos Dados e ETL:** O maior desafio inicial foi lidar com os dados brutos, que continham inconsistências, tipos de dados incompatíveis (como `int64` do NumPy vs. JSON) e valores ausentes. O processo de limpeza, conversão de tipos e padronização com Pandas foi fundamental para a viabilidade e estabilidade da API.
+-   **Visualização de Dados com Outliers:** A criação do mapa de calor revelou o desafio de visualizar dados com uma distribuição desigual (outliers extremos, como a concentração de crimes em Fortaleza). Foi um aprendizado crucial aplicar uma **transformação de escala (raiz quadrada)** para normalizar a intensidade e gerar uma visualização útil e informativa para todo o estado, em vez de um mapa "achatado" por um único ponto.
+-   **Gerenciamento de Estado Complexo no Frontend:** Construir uma interface com múltiplos modos de interação (seleção única, multisseleção com Shift, comparação com Ctrl) sem um framework reativo (como React ou Vue) foi um grande desafio. Exigiu uma estruturação lógica rigorosa e um gerenciamento cuidadoso de eventos e variáveis globais em jQuery para garantir que os diferentes estados não entrassem em conflito.
+-   **Performance da API e Otimização de Queries:** Com a adição de filtros dinâmicos (período, tipo de crime), a performance das consultas no `DataFrame` do Pandas se tornou crítica. Foi um exercício prático em otimização, garantindo que a ordem das operações de filtragem e agregação fosse a mais eficiente possível para entregar respostas rápidas ao frontend.
+-   **Da Análise ao Insight:** O principal aprendizado foi a jornada de transformar uma simples análise técnica em uma narrativa fundamentada. A criação da ferramenta de correlação, por exemplo, permitiu ir além da visualização de números e começar a investigar e validar hipóteses complexas, como a relação inversa entre a aplicação da Lei Maria da Penha e as taxas de feminicídio.
+
 
 ---
 
