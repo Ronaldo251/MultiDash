@@ -97,8 +97,8 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/ronaldo251/nome-do-seu-repositorio.git
-    cd nome-do-seu-repositorio
+    git clone https://github.com/ronaldo251/analise_criminal_mulheres_ceara.git
+    cd analise_criminal_mulheres_ceara
     ```
 
 2.  **Crie e ative um ambiente virtual (recomendado ):**
