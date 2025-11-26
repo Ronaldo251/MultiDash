@@ -1278,19 +1278,13 @@ function exportSelectionToCSV() {
             }).addTo(map);
 
         } else if (mapView === 'heatmap') {
-    const raw_points = data.points;
+    const points = data; 
 
-    if (raw_points.length > 0) {
-        const transformed_points = raw_points.map(p => {
-            return [p[0], p[1], Math.sqrt(p[2])]; 
-        });
-
-        heatLayer = L.heatLayer(transformed_points, {
-            radius: 30,
-            blur: 0,
-            maxZoom: 11,
-            max: data.max_intensity, 
-            gradient: { 0.7: '#F89441', 0.8: '#E5534F', 1.0: '#C70039' } 
+    if (points.length > 0) {
+        heatLayer = L.heatLayer(points, {
+            radius: 18,
+            blur: 30,
+            gradient: { 0.4: 'yellow', 0.7: 'orange', 1.0: 'red' }
         }).addTo(map);
     }
 }

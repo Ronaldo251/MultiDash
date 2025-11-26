@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import geopandas as gpd
 from flask import Flask, jsonify, render_template, request
@@ -11,13 +12,18 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
 pd.options.mode.chained_assignment = None 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 
 print("Iniciando o carregamento e processamento dos dados...")
 try:
-    df_crimes_raw = pd.read_csv('crimes.csv', sep=',')
-    gdf_municipios_raw = gpd.read_file('municipios_ce.geojson')
-    df_populacao = pd.read_csv('populacao_ce.csv')
+    crimes_path = os.path.join(BASE_DIR, 'crimes.csv')
+    municipios_path = os.path.join(BASE_DIR, 'municipios_ce.geojson')
+    populacao_path = os.path.join(BASE_DIR, 'populacao_ce.csv')
+
+    df_crimes_raw = pd.read_csv(crimes_path, sep=',')
+    gdf_municipios_raw = gpd.read_file(municipios_path)
+    df_populacao = pd.read_csv(populacao_path)
     
     df_crimes_raw.columns = [
         'AIS', 'NATUREZA', 'MUNICIPIO', 'LOCAL', 'DATA', 'HORA', 'DIA_SEMANA',
@@ -541,30 +547,44 @@ def get_data_grafico_comparativo_idade_genero_homicidios():
 
 @app.route('/api/heatmap_map_data')
 def get_heatmap_map_data():
-    selected_crimes_str = request.args.get('crimes')
-    if not selected_crimes_str:
-        return jsonify({'points': [], 'max_intensity': 0})
-    selected_crimes = selected_crimes_str.split(',')
+    selected_crimes = request.args.get('crimes').split(',')
     ano_inicio = int(request.args.get('ano_inicio'))
     ano_fim = int(request.args.get('ano_fim'))
-    df_periodo = df_crimes_raw[(df_crimes_raw['DATA'].dt.year >= ano_inicio) & (df_crimes_raw['DATA'].dt.year <= ano_fim)]
-    df_filtered = df_periodo[df_periodo['NATUREZA'].isin(selected_crimes)]
-    if df_filtered.empty:
-        return jsonify({'points': [], 'max_intensity': 0})
-    crime_counts = df_filtered.groupby('MUNICIPIO').size().reset_index(name='INTENSIDADE')
-    heatmap_data = pd.merge(municipios_com_centroide, crime_counts, left_on='name', right_on='MUNICIPIO', how='inner')
-    if heatmap_data.empty:
-        return jsonify({'points': [], 'max_intensity': 0})
-    max_intensity = np.sqrt(heatmap_data['INTENSIDADE'].max())
 
-    points = [
-        [row['centroid'].y, row['centroid'].x, row['INTENSIDADE']]
-        for index, row in heatmap_data.iterrows()
+    # 1. Filtra os dados
+    df_periodo = df_crimes_graficos[
+        (df_crimes_graficos['ANO'] >= ano_inicio) &
+        (df_crimes_graficos['ANO'] <= ano_fim) &
+        (df_crimes_graficos['NATUREZA'].isin(selected_crimes))
     ]
+
+    if df_periodo.empty:
+        return jsonify([]) # Retorna apenas uma lista vazia
+
+    # 2. Calcula a TAXA por município
+    crime_counts = df_periodo.groupby('MUNICIPIO').size().reset_index(name='QUANTIDADE')
+    merged_df = pd.merge(df_populacao, crime_counts, left_on='municipio', right_on='MUNICIPIO', how='left')
+    merged_df['QUANTIDADE'] = merged_df['QUANTIDADE'].fillna(0)
+    merged_df['TAXA_POR_100K'] = 0.0
+    mask_pop_valida = merged_df['populacao'] > 0
+    merged_df.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
+        (merged_df.loc[mask_pop_valida, 'QUANTIDADE'] / merged_df.loc[mask_pop_valida, 'populacao']) * 100000
+
+    # 3. Junta com os centroides
+    df_final = pd.merge(municipios_com_centroide, merged_df, left_on='name', right_on='municipio', how='left')
+    df_final['TAXA_POR_100K'] = df_final['TAXA_POR_100K'].fillna(0)
+
+    # 4. Prepara os pontos para o heatmap
+    points = []
+    for _, row in df_final.iterrows():
+        if row['centroid'] and not row['centroid'].is_empty and row['TAXA_POR_100K'] > 0:
+            points.append([
+                row['centroid'].y,
+                row['centroid'].x,
+                row['TAXA_POR_100K']
+            ])
     
-    return jsonify({
-        'points': points,
-        'max_intensity': float(max_intensity) if max_intensity > 0 else 0
-    })
+    # Retorna APENAS a lista de pontos
+    return jsonify(points)
 if __name__ == '__main__':
     app.run(debug=True)
