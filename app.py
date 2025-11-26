@@ -84,19 +84,38 @@ crimes_com_pop_ais['TAXA_POR_100K'] = (crimes_com_pop_ais['QUANTIDADE'] / crimes
 LISTA_DE_CRIMES = sorted(df_crimes_raw['NATUREZA'].dropna().unique().tolist())
 
 print("Processamento de dados concluído. Aplicação pronta.")
-def projetar_ano_incompleto(df_historico, ano_incompleto, ultimo_mes_registrado, colunas_grupo):
+def projetar_ano_incompleto(df_historico, ano_incompleto, ultimo_mes_registrado, colunas_grupo, anos_para_media=5):
+    """
+    Projeta o total para um ano incompleto com base na média dos meses faltantes 
+    dos últimos 'anos_para_media' anos.
+    """
     df_ano_incompleto = df_historico[df_historico['ANO'] == ano_incompleto].copy()
-    df_anos_anteriores = df_historico[df_historico['ANO'] < ano_incompleto].copy()
+    
+    ano_inicio_media = ano_incompleto - anos_para_media
+    df_anos_anteriores = df_historico[
+        (df_historico['ANO'] < ano_incompleto) &
+        (df_historico['ANO'] >= ano_inicio_media)
+    ].copy()
+
     if df_anos_anteriores.empty:
-        return df_ano_incompleto.groupby(colunas_grupo)['TOTAL'].sum().reset_index()
+        df_anos_anteriores = df_historico[df_historico['ANO'] < ano_incompleto].copy()
+        if df_anos_anteriores.empty:
+            return df_ano_incompleto.groupby(colunas_grupo + ['ANO'])['TOTAL'].sum().reset_index()
+
     periodo_faltante = df_anos_anteriores[df_anos_anteriores['MES'] > ultimo_mes_registrado]
+    
     soma_periodo_faltante_por_ano = periodo_faltante.groupby(['ANO'] + colunas_grupo)['TOTAL'].sum().reset_index()
+    
     media_periodo_faltante = soma_periodo_faltante_por_ano.groupby(colunas_grupo)['TOTAL'].mean().reset_index()
     media_periodo_faltante.rename(columns={'TOTAL': 'ESTIMATIVA_FALTANTE'}, inplace=True)
+
     total_ano_incompleto = df_ano_incompleto.groupby(colunas_grupo)['TOTAL'].sum().reset_index()
+
     df_projetado = pd.merge(total_ano_incompleto, media_periodo_faltante, on=colunas_grupo, how='left')
     df_projetado['ESTIMATIVA_FALTANTE'] = df_projetado['ESTIMATIVA_FALTANTE'].fillna(0)
+    
     df_projetado['TOTAL'] = df_projetado['TOTAL'] + df_projetado['ESTIMATIVA_FALTANTE']
+    
     return df_projetado[colunas_grupo + ['TOTAL']]
 
 def get_filtered_df_for_charts():
@@ -118,31 +137,24 @@ def get_correlation_data():
     if not crime1 or not crime2:
         return jsonify({"error": "Dois crimes devem ser fornecidos"}), 400
 
-    # Filtra o DataFrame para conter apenas os dois crimes de interesse
     df_filtered = df_crimes_graficos[df_crimes_graficos['NATUREZA'].isin([crime1, crime2])]
 
-    # Se não houver nenhum registro para os crimes selecionados, retorna vazio
     if df_filtered.empty:
         return jsonify([])
 
-    # Agrupa por ano e por natureza do crime, contando as ocorrências
     yearly_counts = df_filtered.groupby(['ANO', 'NATUREZA']).size().unstack(fill_value=0)
 
-    # --- CORREÇÃO PRINCIPAL ---
-    # Garante que ambas as colunas de crime existam no DataFrame.
-    # Se um crime não ocorreu, uma coluna de zeros será criada para ele.
     if crime1 not in yearly_counts.columns:
         yearly_counts[crime1] = 0
     if crime2 not in yearly_counts.columns:
         yearly_counts[crime2] = 0
         
-    # Prepara os dados para o formato do gráfico de dispersão
     scatter_data = []
     for year, row in yearly_counts.iterrows():
         scatter_data.append({
-            'x': int(row[crime1]),  # Converte para int padrão do Python
-            'y': int(row[crime2]),  # Converte para int padrão do Python
-            'year': int(year)       # 'year' já estava sendo convertido, o que é bom
+            'x': int(row[crime1]), 
+            'y': int(row[crime2]),
+            'year': int(year) 
         })
         
     return jsonify(scatter_data)
@@ -454,21 +466,71 @@ def get_data_grafico_7b():
 @app.route('/api/data/grafico_evolucao_anual_homicidios')
 def get_data_grafico_evolucao_anual_homicidios():
     df_filtrado = get_filtered_df_for_charts()
+    
     naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
     df_homicidios = df_filtrado[df_filtrado['NATUREZA'].isin(naturezas_homicidio)]
     
-    df_analise = df_homicidios.dropna(subset=['ANO', 'GENERO_AGRUPADO']).copy()
-    df_analise['ANO'] = df_analise['ANO'].astype('Int64')
-    dados_pivot = df_analise.groupby(['ANO', 'GENERO_AGRUPADO']).size().unstack(fill_value=0)
+    df_analise = df_homicidios.dropna(subset=['ANO', 'MES', 'GENERO_AGRUPADO']).copy()
+    df_analise['ANO'] = pd.to_numeric(df_analise['ANO'], errors='coerce').astype('Int64')
+    df_analise.dropna(subset=['ANO'], inplace=True)
+
+    if df_analise.empty:
+        return jsonify({'labels': [], 'datasets': []})
+
+    # --- NOVA LÓGICA DE PROJEÇÃO ---
+    
+    # Agrupa por mês para poder fazer a projeção
+    dados_mensais = df_analise.groupby(['ANO', 'MES', 'GENERO_AGRUPADO']).size().reset_index(name='TOTAL')
+    
+    ano_maximo = int(dados_mensais['ANO'].max())
+    hoje = datetime.now()
+    is_projected = False
+
+    # Verifica se o ano máximo é o ano corrente e se ele está incompleto
+    if ano_maximo == hoje.year and hoje.month < 12:
+        is_projected = True
+        ultimo_mes_registrado = int(dados_mensais[dados_mensais['ANO'] == ano_maximo]['MES'].max())
+        
+        # Chama nossa função de projeção
+        df_projetado = projetar_ano_incompleto(dados_mensais, ano_maximo, ultimo_mes_registrado, ['GENERO_AGRUPADO'])
+        df_projetado['ANO'] = ano_maximo
+        
+        # Pega os dados dos anos anteriores completos
+        dados_finais = dados_mensais[dados_mensais['ANO'] < ano_maximo].groupby(['ANO', 'GENERO_AGRUPADO'])['TOTAL'].sum().reset_index()
+        
+        # Junta os dados completos com o ano projetado
+        dados_finais = pd.concat([dados_finais, df_projetado], ignore_index=True)
+    else:
+        # Se não precisar de projeção, apenas agrupa por ano
+        dados_finais = dados_mensais.groupby(['ANO', 'GENERO_AGRUPADO'])['TOTAL'].sum().reset_index()
+
+    # --- FIM DA LÓGICA DE PROJEÇÃO ---
+
+    dados_pivot = dados_finais.pivot(index='ANO', columns='GENERO_AGRUPADO', values='TOTAL').fillna(0)
+    
+    labels = [str(int(ano)) for ano in dados_pivot.index.tolist()]
+    # Adiciona o sufixo "(Projetado)" ao label do último ano, se for o caso
+    if is_projected:
+        labels[-1] = f"{labels[-1]} (Projetado)"
 
     datasets = []
-    if 'Masculino' in dados_pivot:
-        datasets.append({'label': 'Masculino', 'data': dados_pivot['Masculino'].tolist(), 'borderColor': 'rgba(54, 162, 235, 1)'})
-    if 'Feminino' in dados_pivot:
-        datasets.append({'label': 'Feminino', 'data': dados_pivot['Feminino'].tolist(), 'borderColor': 'rgba(255, 99, 132, 1)'})
+    if 'Masculino' in dados_pivot.columns and request.args.get('genero') != 'feminino':
+        datasets.append({
+            'label': 'Masculino', 
+            'data': dados_pivot['Masculino'].round(0).astype(int).tolist(), # Arredonda os valores projetados
+            'borderColor': 'rgba(54, 162, 235, 1)',
+            'backgroundColor': 'rgba(54, 162, 235, 0.2)'
+        })
         
-    return jsonify({'labels': [str(int(ano)) for ano in dados_pivot.index.tolist()], 'datasets': datasets})
-
+    if 'Feminino' in dados_pivot.columns and request.args.get('genero') != 'masculino':
+        datasets.append({
+            'label': 'Feminino', 
+            'data': dados_pivot['Feminino'].round(0).astype(int).tolist(), # Arredonda os valores projetados
+            'borderColor': 'rgba(255, 99, 132, 1)',
+            'backgroundColor': 'rgba(255, 99, 132, 0.2)'
+        })
+        
+    return jsonify({'labels': labels, 'datasets': datasets})
 @app.route('/api/data/grafico_densidade_etaria_homicidios')
 def get_data_grafico_densidade_etaria_homicidios():
     df_filtrado = get_filtered_df_for_charts() 
@@ -543,6 +605,30 @@ def get_data_grafico_comparativo_idade_genero_homicidios():
             {'label': 'Masculino', 'data': dados_grafico['Masculino'].tolist(), 'borderColor': 'rgba(54, 162, 235, 1)', 'backgroundColor': 'rgba(54, 162, 235, 0.5)', 'fill': True, 'tension': 0.4},
             {'label': 'Feminino', 'data': dados_grafico['Feminino'].tolist(), 'borderColor': 'rgba(255, 99, 132, 1)', 'backgroundColor': 'rgba(255, 99, 132, 0.5)', 'fill': True, 'tension': 0.4}
         ]
+    })
+@app.route('/api/debug/homicidios_mulheres')
+def debug_homicidios_mulheres():
+    # 1. Define a lista de naturezas de homicídio
+    naturezas_homicidio = ['HOMICIDIO DOLOSO', 'FEMINICIDIO', 'LATROCINIO', 'LESAO CORPORAL SEGUIDA DE MORTE']
+    
+    # 2. Filtra o DataFrame principal para esses crimes E para o gênero feminino
+    df_homicidios_fem = df_crimes_graficos[
+        (df_crimes_graficos['NATUREZA'].isin(naturezas_homicidio)) &
+        (df_crimes_graficos['GENERO_AGRUPADO'] == 'Feminino')
+    ]
+    
+    # 3. Calcula os totais
+    total_vitimas = len(df_homicidios_fem)
+    
+    # 4. Conta quantos desses registros têm a coluna 'MEIO_EMPREGADO' preenchida e não é 'NÃO INFORMADO'
+    contagem_meio_empregado_valido = len(df_homicidios_fem.dropna(subset=['MEIO_EMPREGADO']))
+    contagem_meio_empregado_sem_na = len(df_homicidios_fem[df_homicidios_fem['MEIO_EMPREGADO'] != 'NÃO INFORMADO'])
+
+    return jsonify({
+        'TOTAL_DE_VITIMAS_DE_HOMICIDIO_FEMININO': total_vitimas,
+        'VITIMAS_COM_MEIO_EMPREGADO_PREENCHIDO': contagem_meio_empregado_valido,
+        'VITIMAS_COM_MEIO_EMPREGADO_DIFERENTE_DE_NAO_INFORMADO': contagem_meio_empregado_sem_na,
+        'PERCENTUAL_DE_DADOS_UTILIZADOS_NO_GRAFICO': f"{(contagem_meio_empregado_sem_na / total_vitimas) * 100 if total_vitimas > 0 else 0:.2f}%"
     })
 
 @app.route('/api/heatmap_map_data')

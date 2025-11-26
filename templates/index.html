@@ -394,7 +394,12 @@
                 <div class="sub-panel">
                     <div class="sub-panel-content">
                         <ul class="checkbox-list">
-
+    <li><label><input type="checkbox" class="chart-checkbox" 
+                data-chart-id="evolucao_homicidios_fem" 
+                data-chart-api-id="evolucao_anual_homicidios" 
+                data-gender-filter="feminino" 
+                data-chart-title="Evolução Anual de Homicídios de Mulheres" 
+                data-chart-type="line"> Evolução Anual de Homicídios</label></li>                       
     <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="crimes_mulher_dia_hora" data-chart-title="Crimes Contra Mulheres por Dia e Hora" data-chart-type="line"> Crimes por Dia e Hora</label></li>
     <li><label><input type="checkbox" class="chart-checkbox" 
     data-chart-id="densidade_etaria_homicidios_fem" 
@@ -773,7 +778,8 @@ async function createCorrelationChart(crime1, crime2) {
             }
             if (chartType === 'line') {
                 chartData.datasets.forEach(dataset => {
-                    dataset.pointRadius = 0;
+                    dataset.pointRadius = 3; // Raio do ponto em pixels (ajuste se necessário)
+                    dataset.pointHoverRadius = 5; // Raio do ponto quando o mouse está sobre ele
                     dataset.borderWidth = 2;
                 });
             }
