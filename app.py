@@ -128,6 +128,43 @@ def get_filtered_df_for_charts():
 @app.route('/')
 def index():
     return render_template('index.html', crimes=LISTA_DE_CRIMES)
+# Em app.py, pode ser logo após a rota @app.route('/')
+
+@app.route('/api/schema')
+def get_schema():
+    """
+    Analisa o DataFrame e retorna um JSON descrevendo as colunas filtráveis
+    e seus respectivos valores únicos para a construção dinâmica da sidebar.
+    """
+    schema = {}
+
+    # Lista de colunas que queremos transformar em filtros de checkbox na sidebar
+    # Adicionamos as colunas que fazem sentido para o usuário filtrar.
+    colunas_filtráveis = [
+        'NATUREZA',
+        'MUNICIPIO',
+        'LOCAL',
+        'DIA_SEMANA',
+        'MEIO_EMPREGADO',
+        'GENERO',
+        'ORIENTACAO_SEXUAL',
+        'ESCOLARIDADE_VITIMA',
+        'RACA_VITIMA',
+        'AIS' 
+    ]
+
+    for coluna in colunas_filtráveis:
+        # Verifica se a coluna realmente existe no DataFrame
+        if coluna in df_crimes_graficos.columns:
+            # Pega todos os valores únicos, remove valores nulos (NaN) e ordena
+            valores_unicos = sorted([
+                valor for valor in df_crimes_graficos[coluna].unique() if pd.notna(valor)
+            ])
+            
+            # Adiciona a coluna e seus valores ao nosso schema
+            schema[coluna] = valores_unicos
+
+    return jsonify(schema)
 
 @app.route('/api/correlation_data')
 def get_correlation_data():
