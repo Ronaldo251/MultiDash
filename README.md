@@ -1,20 +1,15 @@
-# Uma Análise Sobre o Aumento da Violência Letal e a Participação Feminina no Crime Organizado Cearense
+# MultiDash - Um Dashboard prático e interativo (Em Construção)
 
 ## 1. Visão Geral do Projeto
 
-Este projeto é um **dashboard de análise de dados full-stack** desenvolvido para investigar a tese de que o aumento da violência letal contra mulheres no Ceará está diretamente ligado à sua crescente e complexa inserção nas dinâmicas do crime organizado.
+Este projeto é a evoluçao do projeto de dashboard denominado "Uma Análise Sobre o Aumento da Violência Letal e a Participação Feminina no Crime Organizado Cearense" 
 
-A aplicação web interativa permite a exploração de um dataset de crimes ocorridos entre 2008 e 2025, oferecendo visualizações geográficas, análises temporais, perfis demográficos e modelagem preditiva para transformar dados brutos em inteligência estratégica.
-
-O objetivo é fornecer uma ferramenta poderosa para gestores públicos, pesquisadores, jornalistas e a sociedade civil, permitindo uma compreensão mais profunda e baseada em evidências sobre a face feminina da criminalidade no estado.
-
-<!-- **[Acesse a Aplicação Web](http://seu-link-aqui.com )** -->
 
 ---
 
 ## 2. Demonstração Visual
 
-![Demonstração do Dashboard](https://i.imgur.com/ljWmK8U.png )
+![Demonstração do Dashboard](https://i.imgur.com/exe )
 
 
 *prévia da interface principal do dashboard, mostrando o mapa interativo e os gráficos na sidebar.*
@@ -151,7 +146,3 @@ Para executar este projeto em sua máquina local, siga os passos abaixo.
 -   **LinkedIn:** [linkedin.com/in/ronaldo-fraga-49a11114a](https://www.linkedin.com/in/ronaldo-fraga-49a11114a/ )
 -   **GitHub:** [github.com/ronaldo251](https://github.com/ronaldo251 )
   
-**Mirella Camilo Batista da Silva**
-
--   **LinkedIn:** [linkedin.com/in/mirellacamilo](https://www.linkedin.com/in/mirellacamilo/ )
--   **GitHub:** [github.com/mirellacamilo](https://github.com/mirellacamilo )
