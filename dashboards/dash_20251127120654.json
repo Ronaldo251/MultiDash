@@ -1,0 +1,10 @@
+{
+    "id": "dash_20251127120654",
+    "name": "População",
+    "description": "",
+    "csv_path": "C:\\Users\\ronaldo.fraga\\Documents\\MultiDash\\uploads\\20251127120654_populacao_ce.csv",
+    "filterable_columns": [
+        "municipio",
+        "populacao"
+    ]
+}

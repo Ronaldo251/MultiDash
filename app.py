@@ -14,6 +14,7 @@ pd.options.mode.chained_assignment = None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
+app.json.ensure_ascii = False
 
 print("Iniciando o carregamento e processamento dos dados...")
 try:
@@ -52,7 +53,24 @@ def get_clean_age_df(df_base):
     df_idade['IDADE_NUM'] = df_idade['IDADE_NUM'].astype(int)
     df_idade = df_idade[(df_idade['IDADE_NUM'] >= 0) & (df_idade['IDADE_NUM'] <= 110)]
     return df_idade
+def apply_filters(df, filters):
+    """Aplica uma série de filtros de um objeto JSON a um DataFrame."""
+    df_filtered = df.copy()
 
+    # 1. Filtro de Data
+    start_date = filters['dates'].get('start')
+    end_date = filters['dates'].get('end')
+    if start_date:
+        df_filtered = df_filtered[df_filtered['DATA'] >= pd.to_datetime(start_date)]
+    if end_date:
+        df_filtered = df_filtered[df_filtered['DATA'] <= pd.to_datetime(end_date)]
+
+    # 2. Filtros de Checkbox
+    for column, values in filters['checkboxes'].items():
+        if values: # Se a lista de valores não estiver vazia
+            df_filtered = df_filtered[df_filtered[column].isin(values)]
+    
+    return df_filtered
 def normalize_text(text_series):
     return text_series.str.upper().str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
 
@@ -124,7 +142,26 @@ def get_filtered_df_for_charts():
     if genero_filtro == 'feminino':
         df_filtrado = df_filtrado[df_filtrado['GENERO_AGRUPADO'] == 'Feminino']
     return df_filtrado
+def apply_filters(df, filters):
+    """Aplica uma série de filtros de um objeto JSON a um DataFrame."""
+    df_filtered = df.copy()
 
+    # 1. Filtro de Data
+    start_date = filters['dates'].get('start')
+    end_date = filters['dates'].get('end')
+    if start_date:
+        df_filtered = df_filtered[df_filtered['DATA'] >= pd.to_datetime(start_date)]
+    if end_date:
+        df_filtered = df_filtered[df_filtered['DATA'] <= pd.to_datetime(end_date)]
+
+    # 2. Filtros de Checkbox
+    for column, values in filters['checkboxes'].items():
+        if values: # Se a lista de valores não estiver vazia
+            # Limpeza dos valores para correspondência exata
+            cleaned_values = [str(v).strip() for v in values]
+            df_filtered = df_filtered[df_filtered[column].str.strip().isin(cleaned_values)]
+    
+    return df_filtered
 @app.route('/')
 def index():
     return render_template('index.html', crimes=LISTA_DE_CRIMES)
@@ -166,6 +203,65 @@ def get_schema():
 
     return jsonify(schema)
 
+@app.route('/api/map_data/<view_type>', methods=['POST'])
+def get_map_data(view_type):
+    filters = request.get_json()
+    
+    # Aplica os filtros ao DataFrame principal
+    df_filtered = apply_filters(df_crimes_raw, filters)
+
+    if view_type == 'municipality':
+        if df_filtered.empty:
+            return jsonify({'geojson': json.loads(gdf_municipios_raw.to_json()), 'max_taxa': 0, 'taxa_media_estado': 0, 'total_municipios': len(df_populacao)})
+
+        crime_counts = df_filtered.groupby('MUNICIPIO').size().reset_index(name='QUANTIDADE')
+        merged_df = pd.merge(df_populacao, crime_counts, left_on='municipio', right_on='MUNICIPIO', how='left').drop(columns=['MUNICIPIO'])
+        merged_df['QUANTIDADE'] = merged_df['QUANTIDADE'].fillna(0).astype(int)
+        merged_df['TAXA_POR_100K'] = 0.0
+        mask_pop_valida = merged_df['populacao'] > 0
+        merged_df.loc[mask_pop_valida, 'TAXA_POR_100K'] = (merged_df.loc[mask_pop_valida, 'QUANTIDADE'] / merged_df.loc[mask_pop_valida, 'populacao']) * 100000
+        
+        merged_df_sorted = merged_df.sort_values(by='TAXA_POR_100K', ascending=False).reset_index(drop=True)
+        merged_df_sorted['ranking'] = merged_df_sorted.index + 1
+        taxa_media_estado = merged_df_sorted[merged_df_sorted['populacao'] > 0]['TAXA_POR_100K'].mean()
+        
+        merged_df = pd.merge(merged_df, merged_df_sorted[['municipio', 'ranking']], on='municipio', how='left')
+        geo_df_merged = gdf_municipios_raw.merge(merged_df, left_on='name', right_on='municipio', how='left').fillna(0)
+        max_taxa = geo_df_merged['TAXA_POR_100K'].max()
+
+        return jsonify({
+            'geojson': json.loads(geo_df_merged.to_json()),
+            'max_taxa': max_taxa if pd.notna(max_taxa) else 0,
+            'taxa_media_estado': taxa_media_estado if pd.notna(taxa_media_estado) else 0,
+            'total_municipios': len(merged_df)
+        })
+
+    elif view_type == 'ais':
+        if df_filtered.empty:
+            return jsonify({'geojson': json.loads(gdf_ais.to_json()), 'max_taxa': 0})
+
+        df_filtered['AIS_MAPEADA'] = df_filtered['MUNICIPIO'].map(municipios_ais_map)
+        crimes_agregados_ais = df_filtered.groupby('AIS_MAPEADA').size().reset_index(name='QUANTIDADE')
+        
+        crimes_com_pop_ais = pd.merge(crimes_agregados_ais, pop_por_ais, left_on='AIS_MAPEADA', right_on='AIS', how='left')
+        crimes_com_pop_ais.dropna(subset=['populacao'], inplace=True)
+        crimes_com_pop_ais['TAXA_POR_100K'] = (crimes_com_pop_ais['QUANTIDADE'] / crimes_com_pop_ais['populacao']) * 100000
+
+        mapa_completo = gdf_ais.merge(crimes_com_pop_ais, left_on='AIS', right_on='AIS_MAPEADA', how='left').fillna(0)
+        max_taxa = mapa_completo['TAXA_POR_100K'].max()
+        
+        return jsonify({'geojson': json.loads(mapa_completo.to_json()), 'max_taxa': max_taxa if pd.notna(max_taxa) else 0})
+
+    elif view_type == 'heatmap':
+        df_com_local = df_filtered.dropna(subset=['LATITUDE', 'LONGITUDE'])
+        if df_com_local.empty:
+            return jsonify([])
+        points = df_com_local[['LATITUDE', 'LONGITUDE']].values.tolist()
+        return jsonify(points)
+
+    return jsonify({"error": "Tipo de visualização inválido"}), 400
+
+
 @app.route('/api/correlation_data')
 def get_correlation_data():
     crime1 = request.args.get('crime1')
@@ -195,61 +291,7 @@ def get_correlation_data():
         })
         
     return jsonify(scatter_data)
-
-@app.route('/api/municipality_map_data')
-def get_municipality_map_data():
-    selected_crimes = request.args.get('crimes').split(',')
-    ano_inicio = int(request.args.get('ano_inicio'))
-    ano_fim = int(request.args.get('ano_fim'))
-    df_periodo = df_crimes_raw[
-        (df_crimes_raw['DATA'].dt.year >= ano_inicio) &
-        (df_crimes_raw['DATA'].dt.year <= ano_fim)
-    ]
-    df_filtered = df_periodo[df_periodo['NATUREZA'].isin(selected_crimes)]
-    crime_counts = df_filtered.groupby('MUNICIPIO').size().reset_index(name='QUANTIDADE')
-    merged_df = pd.merge(df_populacao, crime_counts, left_on='municipio', right_on='MUNICIPIO', how='left').drop(columns=['MUNICIPIO'])
-    merged_df['QUANTIDADE'] = merged_df['QUANTIDADE'].fillna(0).astype(int)
-    merged_df['TAXA_POR_100K'] = 0.0
-    mask_pop_valida = merged_df['populacao'] > 0
-    merged_df.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
-        (merged_df.loc[mask_pop_valida, 'QUANTIDADE'] / merged_df.loc[mask_pop_valida, 'populacao']) * 100000
-    merged_df_sorted = merged_df.sort_values(by='TAXA_POR_100K', ascending=False).reset_index(drop=True)
-    merged_df_sorted['ranking'] = merged_df_sorted.index + 1
-    taxa_media_estado = merged_df_sorted[merged_df_sorted['populacao'] > 0]['TAXA_POR_100K'].mean()
-    merged_df = pd.merge(merged_df, merged_df_sorted[['municipio', 'ranking']], on='municipio', how='left')
-    geo_df_merged = gdf_municipios_raw.merge(merged_df, left_on='name', right_on='municipio', how='left')
-    geo_df_merged = geo_df_merged.fillna(0)
-    max_taxa = geo_df_merged['TAXA_POR_100K'].max()
-
-    return jsonify({
-        'geojson': json.loads(geo_df_merged.to_json()),
-        'max_taxa': max_taxa,
-        'taxa_media_estado': taxa_media_estado,
-        'total_municipios': len(merged_df)
-    })
-
-
-@app.route('/api/ais_map_data')
-def get_ais_map_data():
-    crime_types_str = request.args.get('crimes')
-    if not crime_types_str:
-        return jsonify({"error": "Nenhum crime selecionado"}), 400
-    crime_types = crime_types_str.split(',')
-
-    dados_filtrados = crimes_com_pop_ais[crimes_com_pop_ais['NATUREZA'].isin(crime_types)]
-
-    dados_agregados = dados_filtrados.groupby('AIS_MAPEADA').agg({
-        'QUANTIDADE': 'sum',
-        'populacao': 'first'
-    }).reset_index()
-
-    dados_agregados['TAXA_POR_100K'] = (dados_agregados['QUANTIDADE'] / dados_agregados['populacao']) * 100000
-
-    mapa_completo = gdf_ais.merge(dados_agregados, left_on='AIS', right_on='AIS_MAPEADA', how='left')
-    mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']] = mapa_completo[['QUANTIDADE', 'TAXA_POR_100K']].fillna(0)
-    max_taxa = mapa_completo['TAXA_POR_100K'].max()
-    
-    return jsonify({'geojson': json.loads(mapa_completo.to_json()), 'max_taxa': max_taxa})
+ 
 
 @app.route('/api/municipalities')
 def get_municipalities():
@@ -261,21 +303,57 @@ def get_municipalities():
             'lon': row['centroid'].x
         })
     return jsonify(municipalities_list)
-
-@app.route('/api/history/municipio/<nome_municipio>')
-def get_history_for_municipio(nome_municipio):
-    selected_crimes = request.args.get('crimes').split(',')
+@app.route('/api/analyze_csv', methods=['POST'])
+def analyze_csv():
+    # Verifica se o arquivo foi enviado na requisição
+    if 'file' not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado"}), 400
     
-    df_hist = df_crimes_graficos[(df_crimes_graficos['MUNICIPIO'] == nome_municipio) & (df_crimes_graficos['NATUREZA'].isin(selected_crimes))]
+    file = request.files['file']
+
+    # Verifica se o nome do arquivo está vazio
+    if file.filename == '':
+        return jsonify({"error": "Nenhum arquivo selecionado"}), 400
+
+    # Verifica se o arquivo é um CSV
+    if file and file.filename.endswith('.csv'):
+        try:
+            # Lê o CSV diretamente do objeto de arquivo em memória
+            df = pd.read_csv(file)
+            
+            # Pega a lista de nomes das colunas
+            column_names = df.columns.tolist()
+            
+            # Retorna a lista de colunas como JSON
+            return jsonify({"columns": column_names})
+        
+        except Exception as e:
+            # Retorna um erro se o Pandas não conseguir ler o arquivo
+            return jsonify({"error": f"Erro ao processar o arquivo CSV: {str(e)}"}), 500
+    
+    return jsonify({"error": "Formato de arquivo inválido. Por favor, envie um .csv"}), 400
+@app.route('/api/history/municipio/<nome_municipio>', methods=['POST'])
+def get_history_for_municipio(nome_municipio):
+    # Pega os filtros do corpo da requisição
+    filters = request.get_json()
+    
+    # Aplica os filtros (exceto o de município, que já usamos)
+    df_filtered = apply_filters(df_crimes_graficos, filters)
+    
+    # Filtra para o município específico
+    df_hist = df_filtered[df_filtered['MUNICIPIO'] == nome_municipio]
     
     if df_hist.empty:
         return jsonify({'labels': [], 'data': []})
 
-    history_counts = df_hist.groupby(df_hist['DATA'].dt.year).size()
+    # Agrupa por ano e conta as ocorrências
+    history_counts = df_hist.groupby('ANO').size()
     
-    all_years = df_crimes_graficos['DATA'].dt.year.dropna().unique()
-    min_year, max_year = int(all_years.min()), int(all_years.max())
-    full_year_range = pd.RangeIndex(start=min_year, stop=max_year + 1, name='year')
+    # Garante que todos os anos do período filtrado estejam presentes
+    # (ou usa o range total se não houver filtro de data)
+    start_year = df_filtered['ANO'].min()
+    end_year = df_filtered['ANO'].max()
+    full_year_range = pd.RangeIndex(start=int(start_year), stop=int(end_year) + 1, name='year')
     
     history_counts = history_counts.reindex(full_year_range, fill_value=0)
     
@@ -283,7 +361,63 @@ def get_history_for_municipio(nome_municipio):
         'labels': history_counts.index.tolist(),
         'data': history_counts.values.tolist()
     })
+@app.route('/api/create_dashboard', methods=['POST'])
+def create_dashboard():
+    # --- 1. Recebe os dados do formulário ---
+    # Dados de texto (nome, descrição, colunas)
+    dashboard_name = request.form.get('name')
+    dashboard_desc = request.form.get('description')
+    selected_columns_json = request.form.get('columns')
+    
+    # Arquivo CSV
+    if 'file' not in request.files:
+        return jsonify({"error": "Nenhum arquivo CSV enviado"}), 400
+    
+    file = request.files['file']
 
+    if not dashboard_name or not selected_columns_json or file.filename == '':
+        return jsonify({"error": "Dados incompletos"}), 400
+
+    # --- 2. Salva o arquivo CSV ---
+    # Cria um nome de arquivo seguro para evitar conflitos e problemas de segurança
+    from werkzeug.utils import secure_filename
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    safe_filename = f"{timestamp}_{secure_filename(file.filename)}"
+    
+    # Garante que a pasta 'uploads' exista
+    uploads_dir = os.path.join(BASE_DIR, 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    file_path = os.path.join(uploads_dir, safe_filename)
+    file.save(file_path)
+
+    # --- 3. Cria e salva o arquivo de metadados (.json) ---
+    selected_columns = json.loads(selected_columns_json)
+    
+    dashboard_id = f"dash_{timestamp}" # ID único para o dashboard
+    
+    metadata = {
+        "id": dashboard_id,
+        "name": dashboard_name,
+        "description": dashboard_desc,
+        "csv_path": file_path, # Caminho absoluto para o CSV
+        "filterable_columns": selected_columns
+    }
+    
+    # Garante que a pasta 'dashboards' exista
+    dashboards_dir = os.path.join(BASE_DIR, 'dashboards')
+    os.makedirs(dashboards_dir, exist_ok=True)
+    
+    metadata_path = os.path.join(dashboards_dir, f"{dashboard_id}.json")
+    with open(metadata_path, 'w', encoding='utf-8') as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=4)
+
+    # --- 4. Retorna uma resposta de sucesso ---
+    return jsonify({
+        "message": "Dashboard criado com sucesso!",
+        "dashboard_id": dashboard_id,
+        "dashboard_info": metadata
+    }), 201 # 201 Created
 @app.route('/api/data/grafico_evolucao_anual')
 def get_data_grafico_evolucao_anual():
     df_filtrado = get_filtered_df_for_charts()
@@ -339,6 +473,34 @@ def get_data_grafico_evolucao_anual():
             labels.append(f"{ano} (Previsão)")
             
     return jsonify({'labels': labels, 'datasets': datasets})
+
+@app.route('/api/dashboards', methods=['GET'])
+def list_dashboards():
+    dashboards_dir = os.path.join(BASE_DIR, 'dashboards')
+    
+    # Garante que o diretório exista para não dar erro na primeira execução
+    if not os.path.exists(dashboards_dir):
+        return jsonify([])
+
+    dashboards = []
+    for filename in os.listdir(dashboards_dir):
+        if filename.endswith('.json'):
+            try:
+                with open(os.path.join(dashboards_dir, filename), 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # Adiciona apenas as informações necessárias para a lista
+                    dashboards.append({
+                        "id": data.get("id"),
+                        "name": data.get("name"),
+                        "description": data.get("description")
+                    })
+            except Exception as e:
+                print(f"Erro ao ler o arquivo de metadados {filename}: {e}")
+
+    # Ordena os dashboards pelo nome
+    sorted_dashboards = sorted(dashboards, key=lambda d: d['name'])
+    
+    return jsonify(sorted_dashboards)
 
 @app.route('/api/data/grafico_comparativo_idade_genero')
 def get_data_grafico_comparativo_idade_genero():
@@ -668,46 +830,5 @@ def debug_homicidios_mulheres():
         'PERCENTUAL_DE_DADOS_UTILIZADOS_NO_GRAFICO': f"{(contagem_meio_empregado_sem_na / total_vitimas) * 100 if total_vitimas > 0 else 0:.2f}%"
     })
 
-@app.route('/api/heatmap_map_data')
-def get_heatmap_map_data():
-    selected_crimes = request.args.get('crimes').split(',')
-    ano_inicio = int(request.args.get('ano_inicio'))
-    ano_fim = int(request.args.get('ano_fim'))
-
-    # 1. Filtra os dados
-    df_periodo = df_crimes_graficos[
-        (df_crimes_graficos['ANO'] >= ano_inicio) &
-        (df_crimes_graficos['ANO'] <= ano_fim) &
-        (df_crimes_graficos['NATUREZA'].isin(selected_crimes))
-    ]
-
-    if df_periodo.empty:
-        return jsonify([]) # Retorna apenas uma lista vazia
-
-    # 2. Calcula a TAXA por município
-    crime_counts = df_periodo.groupby('MUNICIPIO').size().reset_index(name='QUANTIDADE')
-    merged_df = pd.merge(df_populacao, crime_counts, left_on='municipio', right_on='MUNICIPIO', how='left')
-    merged_df['QUANTIDADE'] = merged_df['QUANTIDADE'].fillna(0)
-    merged_df['TAXA_POR_100K'] = 0.0
-    mask_pop_valida = merged_df['populacao'] > 0
-    merged_df.loc[mask_pop_valida, 'TAXA_POR_100K'] = \
-        (merged_df.loc[mask_pop_valida, 'QUANTIDADE'] / merged_df.loc[mask_pop_valida, 'populacao']) * 100000
-
-    # 3. Junta com os centroides
-    df_final = pd.merge(municipios_com_centroide, merged_df, left_on='name', right_on='municipio', how='left')
-    df_final['TAXA_POR_100K'] = df_final['TAXA_POR_100K'].fillna(0)
-
-    # 4. Prepara os pontos para o heatmap
-    points = []
-    for _, row in df_final.iterrows():
-        if row['centroid'] and not row['centroid'].is_empty and row['TAXA_POR_100K'] > 0:
-            points.append([
-                row['centroid'].y,
-                row['centroid'].x,
-                row['TAXA_POR_100K']
-            ])
-    
-    # Retorna APENAS a lista de pontos
-    return jsonify(points)
 if __name__ == '__main__':
     app.run(debug=True)
