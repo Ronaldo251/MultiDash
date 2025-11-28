@@ -532,30 +532,38 @@ def get_columns():
     
     columns_with_types = []
     for col_name in df.columns:
-        col_type = 'categorical' # Padrão
+        col_type = 'categorical'  # Começa com o padrão
         try:
             series = df[col_name].dropna()
             if series.empty:
                 columns_with_types.append({'name': col_name, 'type': 'categorical'})
                 continue
 
-            # 1. Verifica se é puramente numérico
-            if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series):
-                col_type = 'numeric'
-            else:
-                # 2. Tenta converter para datetime
-                datetime_series = pd.to_datetime(series, errors='coerce')
-                if datetime_series.notna().all(): # Se TODAS as linhas puderem ser convertidas
-                    
-                    # --- LÓGICA CORRIGIDA ---
-                    # Se o número de dias únicos for maior que 1, é uma coluna de data.
-                    # Se for 1, significa que todas as datas são no mesmo dia (provavelmente uma coluna de hora).
-                    if datetime_series.dt.normalize().nunique() > 1:
-                        col_type = 'date'
-                    else:
-                        col_type = 'categorical' # É apenas hora, então tratamos como categoria
-                # Se não puder ser convertida para datetime, permanece 'categorical'
+            # --- NOVA LÓGICA DE DETECÇÃO ---
+
+            # 1. Tenta converter para numérico
+            numeric_series = pd.to_numeric(series, errors='coerce')
+            # Se mais de 80% dos valores não nulos forem numéricos, consideramos 'numeric'
+            if numeric_series.notna().sum() / len(series) > 0.8:
+                if not pd.api.types.is_bool_dtype(series):
+                    col_type = 'numeric'
+                # Se for numérico, não precisa testar para data, então pulamos para o próximo loop
+                columns_with_types.append({'name': col_name, 'type': col_type})
+                continue
+
+            # 2. Se não for numérico, tenta converter para datetime
+            datetime_series = pd.to_datetime(series, errors='coerce')
+            if datetime_series.notna().sum() / len(series) > 0.8:
+                # Se a maioria puder ser convertida para data...
+                # ...verifica se tem mais de um dia único para ser 'date'
+                if datetime_series.dt.normalize().nunique() > 1:
+                    col_type = 'date'
+                # Se não, permanece 'categorical' (é uma coluna de horas)
+            
+            # 3. Se nada funcionar, o padrão 'categorical' é usado
+
         except Exception:
+            # Em caso de qualquer erro, mantém o tipo como 'categorical'
             pass
         
         columns_with_types.append({'name': col_name, 'type': col_type})
@@ -618,7 +626,92 @@ def get_generic_chart_data():
                     })
                 
                 return jsonify({'labels': labels, 'datasets': datasets})
+            
+        elif chart_type == 'timeseries':
+            time_col = column_map.get('time_axis')
+            category_col = column_map.get('category_axis')
 
+            if not time_col or time_col not in df_filtered.columns:
+                raise ValueError(f"Coluna de tempo '{time_col}' não encontrada.")
+            if not category_col or category_col not in df_filtered.columns:
+                raise ValueError(f"Coluna de categoria '{category_col}' não encontrada.")
+
+            df_temp = df_filtered.copy()
+            grouping_col = time_col
+            
+            if pd.api.types.is_datetime64_any_dtype(df_temp[time_col]) or df_temp[time_col].dtype == 'object':
+                df_temp[time_col] = pd.to_datetime(df_temp[time_col], errors='coerce')
+                if pd.api.types.is_datetime64_any_dtype(df_temp[time_col]):
+                    grouping_col = 'ANO'
+                    df_temp[grouping_col] = df_temp[time_col].dt.year
+            
+            df_temp.dropna(subset=[grouping_col], inplace=True)
+            df_temp[grouping_col] = pd.to_numeric(df_temp[grouping_col], errors='coerce').astype(int)
+
+            data_grouped = df_temp.groupby([grouping_col, category_col]).size().unstack(fill_value=0)
+            
+            if len(data_grouped.columns) <= 10:
+                categories_to_show = data_grouped.columns
+            else:
+                categories_to_show = data_grouped.sum().nlargest(10).index
+
+            data_grouped = data_grouped[categories_to_show]
+
+            labels = [str(int(ano)) for ano in data_grouped.index]
+            datasets = []
+
+            for cat in data_grouped.columns:
+                datasets.append({'label': str(cat), 'data': data_grouped[cat].tolist(), 'fill': False, 'tension': 0.1})
+            
+            return jsonify({'labels': labels, 'datasets': datasets})
+
+        elif chart_type == 'pie':
+            category_col = column_map.get('category_axis')
+            if not category_col or category_col not in df_filtered.columns:
+                raise ValueError(f"Coluna de categoria '{category_col}' não encontrada.")
+
+            data_counts = df_filtered[category_col].value_counts().nlargest(10)
+            
+            labels = data_counts.index.tolist()
+            data = data_counts.values.tolist()
+            
+            return jsonify({
+                'labels': labels,
+                'datasets': [{'label': f'Proporção de {category_col}', 'data': data}]
+            })
+        elif chart_type == 'histogram':
+            numeric_col = column_map.get('numeric_axis')
+            if not numeric_col or numeric_col not in df_filtered.columns:
+                raise ValueError(f"Coluna numérica '{numeric_col}' não encontrada.")
+
+            # Remove valores nulos e converte para numérico, tratando erros
+            series = pd.to_numeric(df_filtered[numeric_col], errors='coerce').dropna()
+
+            if series.empty:
+                return jsonify({'labels': [], 'datasets': []})
+
+            # Define as faixas (bins) para o histograma. 
+            # Ex: para idades, podemos ir de 0 a 100, em intervalos de 10.
+            # Esta lógica pode ser tornada mais dinâmica no futuro.
+            max_val = series.max()
+            bins = np.arange(0, max_val + 10, 10) # Cria faixas: 0-10, 10-20, ...
+            
+            # Cria labels para as faixas (ex: "0-9", "10-19", ...)
+            labels = [f"{int(i)}-{int(i+9)}" for i in bins[:-1]]
+            
+            # Usa pd.cut para agrupar os dados nas faixas
+            binned_data = pd.cut(series, bins=bins, labels=labels, right=False)
+            
+            # Conta os valores em cada faixa
+            data_counts = binned_data.value_counts().sort_index()
+            
+            return jsonify({
+                'labels': data_counts.index.tolist(),
+                'datasets': [{
+                    'label': f'Distribuição de {numeric_col}',
+                    'data': data_counts.values.tolist()
+                }]
+            })        
         # --- AQUI ADICIONAREMOS A LÓGICA PARA OUTROS TIPOS DE GRÁFICO (pie, timeseries, etc.) NO FUTURO ---
 
         else:

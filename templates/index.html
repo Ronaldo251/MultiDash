@@ -429,34 +429,7 @@
         </div>
     </div>
 </div>
-
-    <div class="chart-popup-content">
-        <!-- Controles de Seleção -->
-        <div id="correlation-controls" style="display: flex; justify-content: space-around; margin-bottom: 15px;">
-            <div>
-                <label for="correlation-crime1">Crime Eixo X:</label>
-                <select id="correlation-crime1" class="correlation-select">
-                    <option value="">Selecione...</option>
-                    {% for crime in crimes %}
-                        <option value="{{ crime }}">{{ crime }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="correlation-crime2">Crime Eixo Y:</label>
-                <select id="correlation-crime2" class="correlation-select">
-                    <option value="">Selecione...</option>
-                    {% for crime in crimes %}
-                        <option value="{{ crime }}">{{ crime }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-        <!-- Canvas para o Gráfico -->
-        <div style="position: relative; height: calc(100% - 50px);">
-            <canvas id="correlation-chart-canvas"></canvas>
-        </div>
-    </div>
+ 
 </div>
 <script>
         function toggleNav() {
@@ -1100,197 +1073,6 @@
                     container.html(`<p style="color: red; text-align: center;">${error.message}</p>`);
                 }
             }
-            $('#add-new-chart-btn').on('click', function() {
-                // Reseta o modal para o passo 1
-                $('#chart-config-step1').show();
-                $('#chart-config-step2').hide();
-                $('#column-mapping-container').empty();
-                $('#chart-config-modal').show().draggable({ handle: ".chart-popup-header" });
-            });
-
-            // Fecha o modal
-            $('#chart-config-modal .close-btn').on('click', function() {
-                $('#chart-config-modal').hide();
-            });
-            $('#chart-config-modal').on('click', '#generate-chart-btn', async function() {
-                console.log("--- DEBUG: Botão 'Gerar Gráfico' clicado ---");
-                const useLogScale = $('#log-scale-checkbox').is(':checked');
-                const chartType = $('#column-mapping-container').data('chart-type');
-                const requirements = CHART_REQUIREMENTS[chartType];
-                console.log("Tipo de Gráfico:", chartType);
-                console.log("Requisitos:", requirements.fields);
-
-                // 1. Coleta os valores
-                const columnMap = {};
-                $('.chart-column-selector').each(function() {
-                    const fieldId = $(this).data('field-id');
-                    const selectedColumn = $(this).val();
-                    if (selectedColumn) {
-                        columnMap[fieldId] = selectedColumn;
-                    }
-                });
-                console.log("Colunas Mapeadas pelo Usuário:", columnMap);
-
-                // 2. Valida os campos obrigatórios
-                let allRequiredFilled = true; // Flag de controle
-                for (const field of requirements.fields) {
-                    if (field.required && !columnMap[field.id]) {
-                        console.error(`ERRO DE VALIDAÇÃO: Campo obrigatório '${field.id}' (${field.label}) está faltando.`);
-                        alert(`Por favor, selecione uma coluna para "${field.label}".`);
-                        allRequiredFilled = false; // Marca que a validação falhou
-                        break; // Sai do loop
-                    }
-                }
-
-                if (!allRequiredFilled) {
-                    console.log("Validação falhou. Abortando.");
-                    return; // Para a execução se a validação falhou
-                }
-                
-                console.log("Validação passou. Prosseguindo para gerar o gráfico.");
-
-                const requestPayload = {
-                    chartType: chartType,
-                    columnMap: columnMap,
-                    filters: getActiveFilters(),
-                    // Adicionamos a opção de visualização ao payload
-                    viewOptions: {
-                        logScale: useLogScale 
-                    }
-                };
-
-                $('#chart-config-modal').hide();
-                const chartId = `generic-chart-${Date.now()}`;
-                const chartTitle = `${requirements.title}: ${Object.values(columnMap).join(' & ')}`;
-
-                const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
-                $popup.find('.title').text(chartTitle);
-                $('body').append($popup);
-                $popup.draggable({ handle: ".chart-popup-header" }).resizable();
-                $popup.find('.close-btn').on('click', () => $popup.remove());
-                $popup.show();
-                
-                const contentArea = $popup.find('.chart-popup-content');
-                contentArea.html('<p style="text-align:center; padding: 50px;">Gerando gráfico...</p>');
-
-                try {
-                    let apiUrl = `/api/generic_chart`;
-                    if (currentDashboardId) {
-                        apiUrl += `?dashboard_id=${currentDashboardId}`;
-                    }
-
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestPayload)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Erro desconhecido na API.');
-                    }
-
-                    const chartData = await response.json();
-                    
-                    contentArea.html('<canvas></canvas>');
-                    const ctx = contentArea.find('canvas')[0].getContext('2d');
-                    
-                    let finalChartType;
-                    switch (chartType) {
-                        case 'timeseries': finalChartType = 'line'; break;
-                        case 'pie': finalChartType = 'pie'; break;
-                        default: finalChartType = 'bar';
-                    }
-
-                    const chartColors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e', '#1abc9c', '#e67e22', '#7f8c8d'];
-                    if (finalChartType === 'line' || (finalChartType === 'bar' && chartData.datasets.length > 1)) {
-                        chartData.datasets.forEach((dataset, index) => {
-                            dataset.borderColor = chartColors[index % chartColors.length];
-                            dataset.backgroundColor = chartColors[index % chartColors.length];
-                        });
-                    } else if (finalChartType === 'pie' || (finalChartType === 'bar' && chartData.datasets.length === 1)) {
-                        chartData.datasets[0].backgroundColor = chartColors;
-                    }
-                    const useLogScale = $('#checkbox-escala-log').is(':checked'); 
-                    new Chart(ctx, {
-                        type: finalChartType,
-                        data: chartData,
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: chartData.datasets.length > 1 && finalChartType !== 'pie' },
-                                title: { display: true, text: chartTitle }
-                            },
-                            scales: {
-                                x: { 
-                                    display: finalChartType !== 'pie', 
-                                    stacked: false 
-                                },
-                                y: { 
-                                    display: finalChartType !== 'pie', 
-                                    beginAtZero: !useLogScale, 
-                                    stacked: false,
-                                    type: useLogScale ? 'logarithmic' : 'linear' 
-                                }
-                            }
-                        }
-                    });
-
-
-                } catch (error) {
-                    console.error("Erro ao gerar gráfico genérico:", error);
-                    contentArea.html(`<p style="color:red; text-align:center; padding: 50px;">${error.message}</p>`);
-                }
-            });
-            // Lógica para quando um tipo de gráfico é selecionado
-            $('#chart-config-modal').on('click', '.chart-type-btn', async function() {
-                // Esta é a função que já corrigimos, com o 'Analisando...' e o 'finally'
-                // Mantenha a versão mais recente dela aqui.
-                const $button = $(this);
-                const chartType = $button.data('chart-type');
-                const requirements = CHART_REQUIREMENTS[chartType];
-                const mappingContainer = $('#column-mapping-container');
-                
-                $('.chart-type-btn').prop('disabled', true);
-                $button.text('Analisando...');
-
-                mappingContainer.empty();
-                mappingContainer.data('chart-type', chartType);
-
-                try {
-                    const columnsUrl = `/api/columns?dashboard_id=${currentDashboardId || ''}`;
-                    const response = await fetch(columnsUrl);
-                    if (!response.ok) throw new Error('Não foi possível buscar as colunas do dataset.');
-                    const availableColumns = await response.json();
-
-                    requirements.fields.forEach(field => {
-                        let optionsHtml = '<option value="">Selecione uma coluna...</option>';
-                        const compatibleColumns = availableColumns.filter(col => {
-                            if (field.type === 'date') return col.type === 'date';
-                            if (field.type === 'numeric') return col.type === 'numeric';
-                            if (field.type === 'categorical') return col.type === 'categorical';
-                            return true;
-                        });
-                        compatibleColumns.forEach(column => {
-                            optionsHtml += `<option value="${column.name}">${column.name}</option>`;
-                        });
-                        const fieldLabel = field.required ? field.label : `${field.label} (Opcional)`;
-                        const selectHtml = `<div class="column-mapping-item" style="margin-bottom: 15px;"><label for="map-${field.id}">${fieldLabel}:</label><select id="map-${field.id}" class="chart-column-selector" data-field-id="${field.id}" style="width: 100%; padding: 8px;">${optionsHtml}</select></div>`;
-                        mappingContainer.append(selectHtml);
-                    });
-
-                    $('#chart-config-step1').hide();
-                    $('#chart-config-step2').show();
-
-                } catch (error) {
-                    console.error("Erro ao preparar o mapeamento de colunas:", error);
-                    alert(error.message);
-                } finally {
-                    $('.chart-type-btn').prop('disabled', false);
-                    $button.text(requirements.title);
-                }
-            });
 
             // 2. OS GATILHOS SÃO REGISTRADOS AQUI, LOGO DEPOIS, DENTRO DO MESMO ESCOPO
             $('#task-library-btn').on('click', function() {
@@ -1535,14 +1317,200 @@
                 $('#charts-workshop-modal').hide();
             });
             $('#charts-workshop-modal').on('click', '#add-new-chart-btn', function() {
+                // Simplesmente reseta e mostra o modal de configuração
                 $('#chart-config-step1').show();
                 $('#chart-config-step2').hide();
                 $('#column-mapping-container').empty();
                 $('#chart-config-modal').show().draggable({ handle: ".chart-popup-header" });
             });
+            $('#chart-config-modal .close-btn').on('click', function() {
+                $('#chart-config-modal').hide();
+            });
+            $('#chart-config-modal').on('click', '#generate-chart-btn', async function() {
+                // --- PASSO 1: COLETA E VALIDAÇÃO ---
+                const chartType = $('#column-mapping-container').data('chart-type');
+                const requirements = CHART_REQUIREMENTS[chartType];
+                const columnMap = {};
+                $('#chart-config-modal .chart-column-selector').each(function() {
+                    const fieldId = $(this).data('field-id');
+                    const selectedColumn = $(this).val();
+                    if (selectedColumn) {
+                        columnMap[fieldId] = selectedColumn;
+                    }
+                });
 
-            $('#add-new-chart-btn').on('click', function() {
-                // Aqui abriremos o modal de configuração de gráfico
+                for (const field of requirements.fields) {
+                    if (field.required && !columnMap[field.id]) {
+                        alert(`Por favor, selecione uma coluna para "${field.label}".`);
+                        return;
+                    }
+                }
+
+                // --- PASSO 2: LÊ AS OPÇÕES DE VISUALIZAÇÃO ---
+                const useLogScale = $('#log-scale-checkbox').is(':checked');
+
+                // --- PASSO 3: PREPARA A REQUISIÇÃO E A UI ---
+                const requestPayload = {
+                    chartType: chartType,
+                    columnMap: columnMap,
+                    filters: getActiveFilters()
+                };
+
+                $('#chart-config-modal').hide();
+                const chartId = `generic-chart-${Date.now()}`;
+                const chartTitle = `${requirements.title}: ${Object.values(columnMap).join(' & ')}`;
+                const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
+                $popup.find('.title').text(chartTitle);
+                $('body').append($popup);
+                $popup.draggable({ handle: ".chart-popup-header" }).resizable();
+                $popup.find('.close-btn').on('click', () => $popup.remove());
+                $popup.show();
+                const contentArea = $popup.find('.chart-popup-content');
+                contentArea.html('<p style="text-align:center; padding: 50px;">Gerando gráfico...</p>');
+
+                // --- PASSO 4: EXECUTA A LÓGICA ASSÍNCRONA E CRIA O GRÁFICO ---
+                try {
+                    let apiUrl = `/api/generic_chart`;
+                    if (currentDashboardId) {
+                        apiUrl += `?dashboard_id=${currentDashboardId}`;
+                    }
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestPayload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro desconhecido na API.');
+                    }
+
+                    const chartData = await response.json();
+                    contentArea.html('<canvas></canvas>');
+                    const ctx = contentArea.find('canvas')[0].getContext('2d');
+                    
+                    let finalChartType;
+                    switch (chartType) {
+                        case 'timeseries': finalChartType = 'line'; break;
+                        case 'pie': finalChartType = 'pie'; break;
+                        default: finalChartType = 'bar';
+                    }
+
+                    const chartColors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e', '#1abc9c', '#e67e22', '#7f8c8d'];
+                    if (finalChartType === 'line' || (finalChartType === 'bar' && chartData.datasets.length > 1)) {
+                        chartData.datasets.forEach((dataset, index) => {
+                            dataset.borderColor = chartColors[index % chartColors.length];
+                            dataset.backgroundColor = chartColors[index % chartColors.length];
+                        });
+                    } else if (finalChartType === 'pie' || (finalChartType === 'bar' && chartData.datasets.length === 1)) {
+                        chartData.datasets[0].backgroundColor = chartColors;
+                    }
+
+                    // A variável 'useLogScale' está claramente definida neste escopo agora.
+                    new Chart(ctx, {
+                        type: finalChartType,
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: chartData.datasets.length > 1 && finalChartType !== 'pie' },
+                                title: { display: true, text: chartTitle },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            // Se não for um gráfico de pizza, usa o comportamento padrão
+                                            if (context.chart.config.type !== 'pie') {
+                                                return `${context.dataset.label}: ${context.formattedValue}`;
+                                            }
+                                            
+                                            // Lógica específica para o gráfico de pizza
+                                            const label = context.label || '';
+                                            const value = context.raw;
+                                            const data = context.chart.data.datasets[0].data;
+                                            const total = data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: { 
+                                    display: finalChartType !== 'pie', 
+                                    stacked: false 
+                                },
+                                y: { 
+                                    display: finalChartType !== 'pie', 
+                                    beginAtZero: !useLogScale, 
+                                    stacked: false,
+                                    type: useLogScale ? 'logarithmic' : 'linear' 
+                                }
+                            }
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Erro ao gerar gráfico genérico:", error);
+                    contentArea.html(`<p style="color:red; text-align:center; padding: 50px;">${error.message}</p>`);
+                }
+            });
+            // Lógica para quando um tipo de gráfico é selecionado
+            $('#chart-config-modal').on('click', '.chart-type-btn', async function() {
+                // Esta é a função que já corrigimos, com o 'Analisando...' e o 'finally'
+                // Mantenha a versão mais recente dela aqui.
+                const $button = $(this);
+                const chartType = $button.data('chart-type');
+                const requirements = CHART_REQUIREMENTS[chartType];
+                const mappingContainer = $('#column-mapping-container');
+                const optionsContainer = $('#chart-options-container');
+                if (chartType === 'bar' || chartType === 'timeseries' || chartType === 'histogram') {
+                    optionsContainer.show();
+                    // Para o gráfico de barras, marca o checkbox por padrão
+                    $('#log-scale-checkbox').prop('checked', chartType === 'bar');
+                } else {
+                    optionsContainer.hide();
+                }
+                $('.chart-type-btn').prop('disabled', true);
+                $button.text('Analisando...');
+
+                mappingContainer.empty();
+                mappingContainer.data('chart-type', chartType);
+
+                try {
+                    const columnsUrl = `/api/columns?dashboard_id=${currentDashboardId || ''}`;
+                    const response = await fetch(columnsUrl);
+                    if (!response.ok) throw new Error('Não foi possível buscar as colunas do dataset.');
+                    const availableColumns = await response.json();
+
+                    requirements.fields.forEach(field => {
+                        let optionsHtml = '<option value="">Selecione uma coluna...</option>';
+                        const compatibleColumns = availableColumns.filter(col => {
+                            if (field.type === 'date') return col.type === 'date';
+                            if (field.type === 'numeric') return col.type === 'numeric';
+                            if (field.type === 'categorical') return col.type === 'categorical';
+                            return true;
+                        });
+                        compatibleColumns.forEach(column => {
+                            optionsHtml += `<option value="${column.name}">${column.name}</option>`;
+                        });
+                        const fieldLabel = field.required ? field.label : `${field.label} (Opcional)`;
+                        const selectHtml = `<div class="column-mapping-item" style="margin-bottom: 15px;"><label for="map-${field.id}">${fieldLabel}:</label><select id="map-${field.id}" class="chart-column-selector" data-field-id="${field.id}" style="width: 100%; padding: 8px;">${optionsHtml}</select></div>`;
+                        mappingContainer.append(selectHtml);
+                    });
+
+                    $('#chart-config-step1').hide();
+                    $('#chart-config-step2').show();
+
+                } catch (error) {
+                    console.error("Erro ao preparar o mapeamento de colunas:", error);
+                    alert(error.message);
+                } finally {
+                    $('.chart-type-btn').prop('disabled', false);
+                    $button.text(requirements.title);
+                }
             });
             $('#dynamic-filters-container').on('change', '.dynamic-filter-checkbox, .dynamic-filter-input, input[name="mapView"]', updateMap);
             window.map.on('click', clearAllSelections);

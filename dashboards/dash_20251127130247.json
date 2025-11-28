@@ -1,0 +1,19 @@
+{
+    "id": "dash_20251127130247",
+    "name": "fhfhg",
+    "description": "",
+    "csv_path": "C:\\Users\\ronaldo.fraga\\Documents\\MultiDash\\uploads\\20251127130247_crimes.csv",
+    "filterable_columns": [
+        "AIS",
+        "NATUREZA",
+        "MUNICIPIO",
+        "LOCAL",
+        "DIA DA SEMANA",
+        "MEIO EMPREGADO",
+        "GENERO",
+        "ORIENTACAO SEXUAL",
+        "IDADE DA VITIMA",
+        "ESCOLARIDADE DA VITIMA",
+        "RAÇA DA VITIMA"
+    ]
+}
