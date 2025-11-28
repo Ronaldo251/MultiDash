@@ -1,0 +1,16 @@
+{
+    "id": "dash_20251127174418",
+    "name": "reste",
+    "description": "",
+    "csv_path": "C:\\Users\\naldo\\Documents\\MultiDash\\uploads\\20251127174418_dados_selecao_mapa.csv",
+    "filterable_columns": [
+        "Municipio",
+        "Crimes_Selecionados",
+        "Quantidade",
+        "Populacao",
+        "Taxa_por_100k",
+        "Ranking_Estadual",
+        "Total_Municipios_Ranking",
+        "Media_Taxa_Estado"
+    ]
+}

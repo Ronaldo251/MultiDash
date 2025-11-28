@@ -365,110 +365,14 @@
             <label for="municipio-search" style="color: white; margin-bottom: 5px; display: block;">Buscar Município:</label>
             <input type="text" id="municipio-search" placeholder="Digite o nome do município...">
         </div>
-
+        <div style="padding: 0 18px 15px 18px;">
+            <button id="open-charts-workshop-btn" style="width: 100%; padding: 10px; background-color: #9b59b6; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                📊 Visualizações e Gráficos
+            </button>
+        </div>
         <button class="accordion">Filtros de Mapa</button>
         <div id="dynamic-filters-container">
             <!-- O JavaScript irá construir os accordions e filtros aqui -->
-        </div>
-        <button class="accordion">Visualizar Gráficos</button>
-        <div class="panel">
-            <div class="panel-content">
-                <span class="sub-accordion">Crimes Gerais</span>
-                <div class="sub-panel">
-                    <div class="sub-panel-content">
-                        <ul class="checkbox-list">
-
-    <li>
-        <label><input type="checkbox" class="chart-checkbox" data-chart-id="evolucao_anual" data-chart-title="Evolução Anual de Crimes por Gênero" data-chart-type="line"> Evolução Anual por Gênero</label>
-
-        <div class="sub-panel-item-content">
-            <label for="evolucao-anual-predict" style="font-size: 12px;">Previsão Futura:</label>
-            <select id="evolucao-anual-predict" class="chart-filter" data-target-chart="evolucao_anual">
-                <option value="0">Sem Previsão</option>
-                <option value="1">Prever 1 Ano</option>
-                <option value="5">Prever 5 Anos</option>
-                <option value="10">Prever 10 Anos</option>
-            </select>
-        </div>
-    </li>
-    <li><label><input type="checkbox" class="chart-checkbox" 
-                data-chart-id="evolucao_anual_homicidios" 
-                data-chart-api-id="evolucao_anual_homicidios" 
-                data-chart-title="Evolução Anual de Homicídios (HxM)" 
-                data-chart-type="line"> Evolução Anual (Homicídios)</label></li>
-
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_idade_genero" data-chart-title="Comparativo de Idade por Gênero" data-chart-type="line"> Comparativo de Idade por Gênero</label></li>
-    <li><label><input type="checkbox" id="correlation-checkbox"> Análise de Correlação</label></li>
-
-    <!-- 
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="comparativo_crime_log" data-chart-title="Quantidade de Vítimas por Tipo de Crime" data-chart-type="bar"> Quantidade por Tipo de Crime</label></li>
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="proporcao_genero_crime" data-chart-title="Proporção de Gênero por Tipo de Crime" data-chart-type="bar" data-chart-stacked="true" data-chart-axis="y"> Proporção de Gênero por Crime</label></li>
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca" data-chart-title="Distribuição de Vítimas por Raça/Cor" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria" data-chart-title="Distribuição de Densidade Etária das Vítimas" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
-    -->
-</ul>
-                    </div>
-                </div>
-                <hr style="border-color: #444;">
-                <span class="sub-accordion">Crimes Contra a Mulher</span>
-                <div class="sub-panel">
-                    <div class="sub-panel-content">
-                        <ul class="checkbox-list">
-    <li><label><input type="checkbox" class="chart-checkbox" 
-                data-chart-id="evolucao_homicidios_fem" 
-                data-chart-api-id="evolucao_anual_homicidios" 
-                data-gender-filter="feminino" 
-                data-chart-title="Evolução Anual de Homicídios de Mulheres" 
-                data-chart-type="line"> Evolução Anual de Homicídios</label></li>                       
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="crimes_mulher_dia_hora" data-chart-title="Crimes Contra Mulheres por Dia e Hora" data-chart-type="line"> Crimes por Dia e Hora</label></li>
-    <li><label><input type="checkbox" class="chart-checkbox" 
-    data-chart-id="densidade_etaria_homicidios_fem" 
-    data-chart-api-id="densidade_etaria_homicidios" 
-    data-gender-filter="feminino" 
-    data-chart-title="Densidade Etária (Homicídios de Mulheres)" 
-    data-chart-type="line"> Densidade Etária (Homicídios)</label></li>
-            
-            <li><label><input type="checkbox" class="chart-checkbox" 
-                data-chart-id="meio_empregado_homicidios_fem" 
-                data-chart-api-id="proporcao_meio_empregado_homicidios" 
-                data-gender-filter="feminino" 
-                data-chart-title="Meio Empregado (Homicídios de Mulheres)" 
-                data-chart-type="pie"> Meio Empregado (Homicídios)</label></li>
-    
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="densidade_etaria_fem" data-chart-api-id="densidade_etaria" data-gender-filter="feminino" data-chart-title="Distribuição de Densidade Etária (Vítimas Mulheres)" data-chart-type="line"> Distribuição de Densidade Etária</label></li>
-
-    <!--
-    <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="distribuicao_raca_fem" data-chart-api-id="distribuicao_raca" data-gender-filter="feminino" data-chart-title="Distribuição por Raça/Cor (Vítimas Mulheres)" data-chart-type="bar"> Distribuição por Raça/Cor</label></li>
-    -->
-</ul>
-                    </div>
-                </div>
-                <!--<hr style="border-color: #444;">
-                <span class="sub-accordion">Análise por Meio Empregado</span>
-                <div class="sub-panel">
-                    <div class="sub-panel-content">
-                        <label for="meio-empregado-filter">Filtrar por Gênero:</label>
-                        <select id="meio-empregado-filter" class="chart-filter" data-target-chart="proporcao_meio_empregado,evolucao_meio_empregado">
-                            <option value="todos">Todos os Registros</option>
-                            <option value="feminino">Apenas Vítimas Femininas</option>
-                        </select>
-                        <ul class="checkbox-list" style="margin-top: 15px;">
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="proporcao_meio_empregado" data-chart-title="Proporção do Meio Empregado" data-chart-type="pie"> Proporção (Pizza)</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="evolucao_meio_empregado" data-chart-title="Evolução do Meio Empregado" data-chart-type="line"> Evolução Temporal (Linhas)</label></li>
-                        </ul>
-                    </div>
-                </div>
-                <hr style="border-color: #444;">
-                <span class="sub-accordion">Análise de Crimes de Ódio</span>
-                <div class="sub-panel">
-                    <div class="sub-panel-content">
-                        <ul class="checkbox-list">
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="evolucao_odio" data-chart-title="Evolução Anual dos Crimes de Ódio" data-chart-type="line"> Evolução Anual</label></li>
-                            <li><label><input type="checkbox" class="chart-checkbox" data-chart-id="perfil_orientacao_sexual" data-chart-title="Perfil de Orientação Sexual (Vítimas de LGBTfobia)" data-chart-type="bar"> Perfil de Orientação Sexual</label></li>
-                        </ul>
-                    </div>
-                </div>-->
-            </div>
         </div>
     </div>
     <div id="map"></div>
@@ -525,13 +429,7 @@
         </div>
     </div>
 </div>
-<div id="correlation-popup" class="chart-popup" style="display: none; width: 600px; height: 550px;">
-    <div class="chart-popup-header">
-        <span class="title">Análise de Correlação entre Crimes</span>
-        <div class="actions">
-            <span class="close-btn">&times;</span>
-        </div>
-    </div>
+
     <div class="chart-popup-content">
         <!-- Controles de Seleção -->
         <div id="correlation-controls" style="display: flex; justify-content: space-around; margin-bottom: 15px;">
@@ -587,24 +485,58 @@
             // 1. DEFINIÇÃO DE VARIÁVEIS GLOBAIS DO ESCOPO
             // =========================================================================
             
+            let currentDashboardId = null;
             window.map = null;
-            const activeCharts = {};
-            let correlationChartInstance = null;
             let geojsonLayer, heatLayer, legendControl;
             let selectedLayers = {}, comparisonList = [], comparisonChart = null;
             let taxaMediaEstado = 0, totalMunicipios = 0;
             const highlightStyle = { weight: 3, color: '#00ffff', opacity: 1 };
             let shiftPressed = false;
+            const CHART_REQUIREMENTS = {
+                timeseries: {
+                    title: 'Série Temporal',
+                    fields: [
+                        { id: 'time_axis', label: 'Eixo do Tempo (Coluna de Data)', type: 'date' },
+                        { id: 'category_axis', label: 'Coluna de Categoria (para agrupar)', type: 'categorical' }
+                    ]
+                },
+                bar: {
+                    title: 'Contagem por Categoria',
+                    fields: [
+                        { id: 'category_axis', label: 'Eixo Principal (Categoria)', type: 'categorical', required: true },
+                        { id: 'segment_by', label: 'Segmentar Por (Opcional)', type: 'categorical', required: false } // NOVO CAMPO
+                    ]
+                },
+                pie: {
+                    title: 'Proporção (Pizza)',
+                    fields: [
+                        { id: 'category_axis', label: 'Coluna de Categoria', type: 'categorical' }
+                    ]
+                },
+                histogram: {
+                    title: 'Histograma Numérico',
+                    fields: [
+                        { id: 'numeric_axis', label: 'Eixo Numérico (ex: Idade, Valor)', type: 'numeric' }
+                    ]
+                },
+                scatter: {
+                    title: 'Correlação (Dispersão)',
+                    fields: [
+                        { id: 'x_axis', label: 'Eixo X (Numérico)', type: 'numeric' },
+                        { id: 'y_axis', label: 'Eixo Y (Numérico)', type: 'numeric' }
+                    ]
+                }
+            };
 
             // =========================================================================
             // 2. DEFINIÇÃO DE TODAS AS FUNÇÕES
             // =========================================================================
 
-            
 
             async function buildDynamicFilters() {
                 try {
-                    const response = await fetch('/api/schema');
+                    const url = `/api/schema?dashboard_id=${currentDashboardId || ''}`;
+                    const response = await fetch(url); 
                     if (!response.ok) throw new Error('Falha ao buscar o schema da API');
                     const schema = await response.json();
                     const container = $('#dynamic-filters-container');
@@ -661,134 +593,6 @@
                 }
             }
 
-            async function createChartPopup(chartId) {
-                const $checkbox = $(`input[data-chart-id="${chartId}"]`);
-                const chartApiId = $checkbox.data('chart-api-id') || chartId;
-                const chartTitle = $checkbox.data('chart-title');
-                const chartType = $checkbox.data('chart-type') || 'line';
-                const isStacked = $checkbox.data('chart-stacked') || false;
-                const mainAxis = $checkbox.data('chart-axis') || 'x';
-                const genderFilter = $checkbox.data('gender-filter');
-
-                let finalChartTitle = chartTitle;
-                let apiUrl = `/api/data/grafico_${chartApiId}`;
-                let queryParams = [];
-
-                if (genderFilter) {
-                    queryParams.push(`genero=${genderFilter}`);
-                }
-
-                $(`.chart-filter`).each(function() {
-                    const targets = $(this).data('target-chart').split(',');
-                    if (targets.includes(chartId) || targets.includes(chartApiId)) {
-                        const filterValue = $(this).val();
-                        const filterKey = this.id.includes('predict') ? 'predict' : 'filtro';
-                        if (filterValue !== "0" || filterKey === 'filtro') {
-                            queryParams.push(`${filterKey}=${filterValue}`);
-                        }
-                        if (filterKey === 'filtro') {
-                            finalChartTitle += ` (${$(this).find('option:selected').text()})`;
-                        }
-                    }
-                });
-
-                if (queryParams.length > 0) {
-                    apiUrl += `?${queryParams.join('&')}`;
-                }
-
-                const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
-                $popup.find('.title').text(finalChartTitle);
-                $('body').append($popup);
-                $popup.draggable({ handle: ".chart-popup-header" }).resizable();
-                $popup.find('.close-btn').on('click', function() {
-                    $checkbox.prop('checked', false);
-                    destroyChartPopup(chartId);
-                });
-
-                try {
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
-                    const chartData = await response.json();
-                    const ctx = $popup.find('canvas')[0].getContext('2d');
-
-                    const chartOptions = {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: mainAxis,
-                        scales: {
-                            x: { stacked: isStacked },
-                            y: { stacked: isStacked, beginAtZero: true }
-                        },
-                        plugins: {
-                            legend: { display: chartData.datasets.length > 1 && chartType !== 'pie' && chartType !== 'doughnut' },
-                            datalabels: {
-                                display: function(context) {
-                                    const type = context.chart.config.type;
-                                    return type === 'pie' || type === 'doughnut' || (type === 'line' && context.chart.data.labels.length <= 20);
-                                },
-                                formatter: (value, context) => {
-                                    const type = context.chart.config.type;
-                                    if (type === 'pie' || type === 'doughnut') {
-                                        return parseFloat(value).toFixed(1) + '%';
-                                    }
-                                    return Math.round(value);
-                                },
-                                color: '#fff',
-                                font: { weight: 'bold', size: 14 },
-                                textShadow: { color: 'rgba(0, 0, 0, 0.75)', blur: 4 }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || context.label || '';
-                                        if (label) { label += ': '; }
-                                        const chartId = context.chart.canvas.parentElement.parentElement.id;
-                                        if (chartId === 'popup-distribuicao_raca_homicidios_mulheres') {
-                                            label += parseFloat(context.raw).toFixed(1) + '%';
-                                        } else if (isStacked && mainAxis === 'y') {
-                                            label += parseFloat(context.raw).toFixed(2) + '%';
-                                        } else {
-                                            label += context.raw;
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    };
-
-                    if (chartType === 'line') {
-                        chartData.datasets.forEach(dataset => {
-                            dataset.pointRadius = 3;
-                            dataset.pointHoverRadius = 5;
-                            dataset.borderWidth = 2;
-                        });
-                    }
-
-                    const chartInstance = new Chart(ctx, { type: chartType, data: chartData, options: chartOptions });
-                    activeCharts[chartId] = chartInstance;
-                    $popup.find('.export-chart-btn').on('click', function() {
-                        const link = document.createElement('a');
-                        link.href = chartInstance.toBase64Image();
-                        link.download = `${finalChartTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    });
-                    $popup.show();
-                } catch (error) {
-                    console.error("Erro ao buscar ou renderizar dados do gráfico:", error);
-                    $popup.remove();
-                }
-            }
-
-            function destroyChartPopup(chartId) {
-                if (activeCharts[chartId]) {
-                    activeCharts[chartId].destroy();
-                    delete activeCharts[chartId];
-                }
-                $('#popup-' + chartId).remove();
-            }
 
             async function createComparisonChart(mun1, mun2) {
                 if (comparisonChart) {
@@ -804,6 +608,12 @@
                 }
 
                 try {
+                    let url1 = `/api/history/municipio/${mun1}`;
+                    let url2 = `/api/history/municipio/${mun2}`;
+                    if (currentDashboardId) {
+                        url1 += `?dashboard_id=${currentDashboardId}`;
+                        url2 += `?dashboard_id=${currentDashboardId}`;
+                    }
                     const [response1, response2] = await Promise.all([
                         fetch(`/api/history/municipio/${mun1}`, {
                             method: 'POST',
@@ -873,52 +683,6 @@
                 } catch (error) {
                     console.error("Erro ao criar gráfico de comparação:", error);
                     destroyComparisonChart();
-                }
-            }
-
-
-            async function createCorrelationChart(crime1, crime2) {
-                if (correlationChartInstance) {
-                    correlationChartInstance.destroy();
-                }
-                try {
-                    const apiUrl = `/api/correlation_data?crime1=${encodeURIComponent(crime1)}&crime2=${encodeURIComponent(crime2)}`;
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) throw new Error(`Erro na API de correlação: ${response.status}`);
-                    const scatterData = await response.json();
-                    const ctx = document.getElementById('correlation-chart-canvas').getContext('2d');
-                    correlationChartInstance = new Chart(ctx, {
-                        type: 'scatter',
-                        data: {
-                            datasets: [{
-                                label: `${crime1} (X) vs ${crime2} (Y)`,
-                                data: scatterData,
-                                backgroundColor: 'rgba(255, 99, 132, 0.6)'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: { type: 'linear', position: 'bottom', title: { display: true, text: `Nº de Ocorrências: ${crime1}` } },
-                                y: { title: { display: true, text: `Nº de Ocorrências: ${crime2}` } }
-                            },
-                            plugins: {
-                                title: { display: true, text: `Correlação Anual: ${crime1} vs ${crime2}` },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const point = context.raw;
-                                            return `Ano: ${point.year} | ${crime1}: ${point.x} | ${crime2}: ${point.y}`;
-                                        }
-                                    }
-                                },
-                                datalabels: { display: false }
-                            }
-                        }
-                    });
-                } catch (error) {
-                    console.error("Erro ao criar gráfico de correlação:", error);
                 }
             }
 
@@ -997,9 +761,14 @@
                     `;
                     try {
                         const filters = getActiveFilters();
-                        const historyUrl = `/api/history/municipio/${name}`;
                         
-                        const response = await fetch(historyUrl, {
+                        // GARANTA QUE ESTAS LINHAS ESTEJAM ASSIM:
+                        let historyUrl = `/api/history/municipio/${name}`;
+                        if (currentDashboardId) {
+                            historyUrl += `?dashboard_id=${currentDashboardId}`;
+                        }
+                        
+                        const response = await fetch(historyUrl, { // Usa a nova URL
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(filters)
@@ -1124,10 +893,13 @@
                 }
 
                 const filtersJsonString = JSON.stringify(filters);
-                const apiUrl = `/api/map_data/${mapView}`;
+                let apiUrl = `/api/map_data/${mapView}`;
+                if (currentDashboardId) {
+                    apiUrl += `?dashboard_id=${currentDashboardId}`;
+                }
 
                 try {
-                    const response = await fetch(apiUrl, {
+                    const response = await fetch(apiUrl, { // Usa a nova apiUrl
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: filtersJsonString,
@@ -1290,6 +1062,306 @@
                     mapLoader.style.display = 'none';
                 }
             }
+            async function loadAndShowDashboards() {
+                const container = $('#dashboard-list-container');
+                container.html('<p>Carregando dashboards...</p>');
+
+                try {
+                    const response = await fetch('/api/dashboards');
+                    if (!response.ok) {
+                        throw new Error(`Falha ao carregar dashboards: ${response.statusText}`);
+                    }
+                    const dashboards = await response.json();
+                    container.empty();
+
+                    if (dashboards.length === 0) {
+                        container.html('<p style="text-align: center; padding: 20px;">Nenhum dashboard encontrado. Crie um novo para começar!</p>');
+                        return;
+                    }
+
+                    dashboards.forEach(dash => {
+                        const dashboardCard = `
+                            <div class="dashboard-card" data-id="${dash.id}">
+                                <div class="dashboard-info">
+                                    <strong class="dashboard-name">${dash.name}</strong>
+                                    <p class="dashboard-desc">${dash.description || 'Sem descrição.'}</p>
+                                </div>
+                                <div class="dashboard-actions">
+                                    <button class="load-dashboard-btn">Carregar</button>
+                                    <button class="delete-dashboard-btn">Excluir</button>
+                                </div>
+                            </div>
+                        `;
+                        container.append(dashboardCard);
+                    });
+
+                } catch (error) {
+                    console.error("Erro em loadAndShowDashboards:", error);
+                    container.html(`<p style="color: red; text-align: center;">${error.message}</p>`);
+                }
+            }
+            $('#add-new-chart-btn').on('click', function() {
+                // Reseta o modal para o passo 1
+                $('#chart-config-step1').show();
+                $('#chart-config-step2').hide();
+                $('#column-mapping-container').empty();
+                $('#chart-config-modal').show().draggable({ handle: ".chart-popup-header" });
+            });
+
+            // Fecha o modal
+            $('#chart-config-modal .close-btn').on('click', function() {
+                $('#chart-config-modal').hide();
+            });
+            $('#chart-config-modal').on('click', '#generate-chart-btn', async function() {
+                console.log("--- DEBUG: Botão 'Gerar Gráfico' clicado ---");
+                const useLogScale = $('#log-scale-checkbox').is(':checked');
+                const chartType = $('#column-mapping-container').data('chart-type');
+                const requirements = CHART_REQUIREMENTS[chartType];
+                console.log("Tipo de Gráfico:", chartType);
+                console.log("Requisitos:", requirements.fields);
+
+                // 1. Coleta os valores
+                const columnMap = {};
+                $('.chart-column-selector').each(function() {
+                    const fieldId = $(this).data('field-id');
+                    const selectedColumn = $(this).val();
+                    if (selectedColumn) {
+                        columnMap[fieldId] = selectedColumn;
+                    }
+                });
+                console.log("Colunas Mapeadas pelo Usuário:", columnMap);
+
+                // 2. Valida os campos obrigatórios
+                let allRequiredFilled = true; // Flag de controle
+                for (const field of requirements.fields) {
+                    if (field.required && !columnMap[field.id]) {
+                        console.error(`ERRO DE VALIDAÇÃO: Campo obrigatório '${field.id}' (${field.label}) está faltando.`);
+                        alert(`Por favor, selecione uma coluna para "${field.label}".`);
+                        allRequiredFilled = false; // Marca que a validação falhou
+                        break; // Sai do loop
+                    }
+                }
+
+                if (!allRequiredFilled) {
+                    console.log("Validação falhou. Abortando.");
+                    return; // Para a execução se a validação falhou
+                }
+                
+                console.log("Validação passou. Prosseguindo para gerar o gráfico.");
+
+                const requestPayload = {
+                    chartType: chartType,
+                    columnMap: columnMap,
+                    filters: getActiveFilters(),
+                    // Adicionamos a opção de visualização ao payload
+                    viewOptions: {
+                        logScale: useLogScale 
+                    }
+                };
+
+                $('#chart-config-modal').hide();
+                const chartId = `generic-chart-${Date.now()}`;
+                const chartTitle = `${requirements.title}: ${Object.values(columnMap).join(' & ')}`;
+
+                const $popup = $('#chart-popup-template .chart-popup').clone().attr('id', 'popup-' + chartId);
+                $popup.find('.title').text(chartTitle);
+                $('body').append($popup);
+                $popup.draggable({ handle: ".chart-popup-header" }).resizable();
+                $popup.find('.close-btn').on('click', () => $popup.remove());
+                $popup.show();
+                
+                const contentArea = $popup.find('.chart-popup-content');
+                contentArea.html('<p style="text-align:center; padding: 50px;">Gerando gráfico...</p>');
+
+                try {
+                    let apiUrl = `/api/generic_chart`;
+                    if (currentDashboardId) {
+                        apiUrl += `?dashboard_id=${currentDashboardId}`;
+                    }
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestPayload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro desconhecido na API.');
+                    }
+
+                    const chartData = await response.json();
+                    
+                    contentArea.html('<canvas></canvas>');
+                    const ctx = contentArea.find('canvas')[0].getContext('2d');
+                    
+                    let finalChartType;
+                    switch (chartType) {
+                        case 'timeseries': finalChartType = 'line'; break;
+                        case 'pie': finalChartType = 'pie'; break;
+                        default: finalChartType = 'bar';
+                    }
+
+                    const chartColors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e', '#1abc9c', '#e67e22', '#7f8c8d'];
+                    if (finalChartType === 'line' || (finalChartType === 'bar' && chartData.datasets.length > 1)) {
+                        chartData.datasets.forEach((dataset, index) => {
+                            dataset.borderColor = chartColors[index % chartColors.length];
+                            dataset.backgroundColor = chartColors[index % chartColors.length];
+                        });
+                    } else if (finalChartType === 'pie' || (finalChartType === 'bar' && chartData.datasets.length === 1)) {
+                        chartData.datasets[0].backgroundColor = chartColors;
+                    }
+                    const useLogScale = $('#checkbox-escala-log').is(':checked'); 
+                    new Chart(ctx, {
+                        type: finalChartType,
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: chartData.datasets.length > 1 && finalChartType !== 'pie' },
+                                title: { display: true, text: chartTitle }
+                            },
+                            scales: {
+                                x: { 
+                                    display: finalChartType !== 'pie', 
+                                    stacked: false 
+                                },
+                                y: { 
+                                    display: finalChartType !== 'pie', 
+                                    beginAtZero: !useLogScale, 
+                                    stacked: false,
+                                    type: useLogScale ? 'logarithmic' : 'linear' 
+                                }
+                            }
+                        }
+                    });
+
+
+                } catch (error) {
+                    console.error("Erro ao gerar gráfico genérico:", error);
+                    contentArea.html(`<p style="color:red; text-align:center; padding: 50px;">${error.message}</p>`);
+                }
+            });
+            // Lógica para quando um tipo de gráfico é selecionado
+            $('#chart-config-modal').on('click', '.chart-type-btn', async function() {
+                // Esta é a função que já corrigimos, com o 'Analisando...' e o 'finally'
+                // Mantenha a versão mais recente dela aqui.
+                const $button = $(this);
+                const chartType = $button.data('chart-type');
+                const requirements = CHART_REQUIREMENTS[chartType];
+                const mappingContainer = $('#column-mapping-container');
+                
+                $('.chart-type-btn').prop('disabled', true);
+                $button.text('Analisando...');
+
+                mappingContainer.empty();
+                mappingContainer.data('chart-type', chartType);
+
+                try {
+                    const columnsUrl = `/api/columns?dashboard_id=${currentDashboardId || ''}`;
+                    const response = await fetch(columnsUrl);
+                    if (!response.ok) throw new Error('Não foi possível buscar as colunas do dataset.');
+                    const availableColumns = await response.json();
+
+                    requirements.fields.forEach(field => {
+                        let optionsHtml = '<option value="">Selecione uma coluna...</option>';
+                        const compatibleColumns = availableColumns.filter(col => {
+                            if (field.type === 'date') return col.type === 'date';
+                            if (field.type === 'numeric') return col.type === 'numeric';
+                            if (field.type === 'categorical') return col.type === 'categorical';
+                            return true;
+                        });
+                        compatibleColumns.forEach(column => {
+                            optionsHtml += `<option value="${column.name}">${column.name}</option>`;
+                        });
+                        const fieldLabel = field.required ? field.label : `${field.label} (Opcional)`;
+                        const selectHtml = `<div class="column-mapping-item" style="margin-bottom: 15px;"><label for="map-${field.id}">${fieldLabel}:</label><select id="map-${field.id}" class="chart-column-selector" data-field-id="${field.id}" style="width: 100%; padding: 8px;">${optionsHtml}</select></div>`;
+                        mappingContainer.append(selectHtml);
+                    });
+
+                    $('#chart-config-step1').hide();
+                    $('#chart-config-step2').show();
+
+                } catch (error) {
+                    console.error("Erro ao preparar o mapeamento de colunas:", error);
+                    alert(error.message);
+                } finally {
+                    $('.chart-type-btn').prop('disabled', false);
+                    $button.text(requirements.title);
+                }
+            });
+
+            // 2. OS GATILHOS SÃO REGISTRADOS AQUI, LOGO DEPOIS, DENTRO DO MESMO ESCOPO
+            $('#task-library-btn').on('click', function() {
+                $('#library-modal').show().draggable({ handle: ".chart-popup-header" });
+                loadAndShowDashboards();
+            });
+
+            $('#library-modal .close-btn').on('click', function() {
+                $('#library-modal').hide();
+            });
+
+            $('#dashboard-list-container').on('click', '.load-dashboard-btn', async function() {
+                const card = $(this).closest('.dashboard-card');
+                const dashId = card.data('id');
+                const dashName = card.find('.dashboard-name').text();
+
+                if (!confirm(`Deseja carregar o dashboard "${dashName}"? Os filtros atuais serão perdidos.`)) {
+                    return;
+                }
+
+                console.log(`Carregando dashboard ID: ${dashId}`);
+                currentDashboardId = dashId; // ATUALIZA O ESTADO GLOBAL
+
+                $('#library-modal').hide();
+                $('#map-loader').show(); // Mostra feedback de carregamento
+
+                try {
+                    // 1. Reconstrói a sidebar de filtros com as colunas do novo dashboard
+                    await buildDynamicFilters(); 
+                    // 2. Limpa e atualiza o mapa com os dados do novo dashboard
+                    await updateMap(); 
+                    alert(`Dashboard "${dashName}" carregado com sucesso!`);
+                } catch (error) {
+                    console.error("Erro ao carregar o dashboard:", error);
+                    alert("Ocorreu um erro ao carregar o dashboard. Revertendo para o padrão.");
+                    currentDashboardId = null; // Reverte para o padrão em caso de erro
+                    await buildDynamicFilters(); // Tenta recarregar a sidebar padrão
+                    await updateMap();
+                } finally {
+                    $('#map-loader').hide();
+                }
+            });
+
+            $('#dashboard-list-container').on('click', '.delete-dashboard-btn', async function() {
+                const card = $(this).closest('.dashboard-card');
+                const dashId = card.data('id');
+                const dashName = card.find('.dashboard-name').text();
+
+                if (confirm(`Tem certeza que deseja excluir o dashboard "${dashName}"? Esta ação não pode ser desfeita.`)) {
+                    try {
+                        const response = await fetch(`/api/dashboards/${dashId}`, { method: 'DELETE' });
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.error || 'Erro desconhecido ao excluir.');
+                        }
+
+                        alert(result.message);
+                        card.fadeOut(400, function() {
+                            $(this).remove();
+                            if ($('#dashboard-list-container').children().length === 0) {
+                                $('#dashboard-list-container').html('<p style="text-align: center; padding: 20px;">Nenhum dashboard encontrado.</p>');
+                            }
+                        });
+
+                    } catch (error) {
+                        console.error("Erro ao excluir dashboard:", error);
+                        alert(`Erro: ${error.message}`);
+                    }
+                }
+            });
 
             // =========================================================================
             // 3. INICIALIZAÇÃO DA APLICAÇÃO
@@ -1455,7 +1527,23 @@
             // --- Gatilhos de Eventos ---
             window.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftPressed = true; });
             window.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftPressed = false; });
-            
+            $('#open-charts-workshop-btn').on('click', function() {
+                $('#charts-workshop-modal').show().draggable({ handle: ".chart-popup-header" });
+            });
+
+            $('#charts-workshop-modal .close-btn').on('click', function() {
+                $('#charts-workshop-modal').hide();
+            });
+            $('#charts-workshop-modal').on('click', '#add-new-chart-btn', function() {
+                $('#chart-config-step1').show();
+                $('#chart-config-step2').hide();
+                $('#column-mapping-container').empty();
+                $('#chart-config-modal').show().draggable({ handle: ".chart-popup-header" });
+            });
+
+            $('#add-new-chart-btn').on('click', function() {
+                // Aqui abriremos o modal de configuração de gráfico
+            });
             $('#dynamic-filters-container').on('change', '.dynamic-filter-checkbox, .dynamic-filter-input, input[name="mapView"]', updateMap);
             window.map.on('click', clearAllSelections);
             $('#draggable-info-popup .close-btn').on('click', function() {
@@ -1485,41 +1573,6 @@
                     }
                 });
             });
-            $('body').on('change', '.chart-checkbox', function() {
-                const chartId = $(this).data('chart-id');
-                if (this.checked) { createChartPopup(chartId); } else { destroyChartPopup(chartId); }
-            });
-            $('body').on('change', '.chart-filter', function() {
-                const targetCharts = $(this).data('target-chart').split(',');
-                targetCharts.forEach(chartId => {
-                    if ($(`input[data-chart-id="${chartId}"]`).is(':checked')) {
-                        destroyChartPopup(chartId);
-                        createChartPopup(chartId);
-                    }
-                });
-            });
-            $('#correlation-checkbox').on('change', function() {
-                if (this.checked) {
-                    $('#correlation-popup').show().draggable({ handle: ".chart-popup-header" }).resizable();
-                } else {
-                    $('#correlation-popup').hide();
-                    if (correlationChartInstance) {
-                        correlationChartInstance.destroy();
-                        correlationChartInstance = null;
-                    }
-                    $('.correlation-select').val('');
-                }
-            });
-            $('#correlation-popup .close-btn').on('click', function() {
-                $('#correlation-checkbox').prop('checked', false).trigger('change');
-            });
-            $('body').on('change', '.correlation-select', function() {
-                const crime1 = $('#correlation-crime1').val();
-                const crime2 = $('#correlation-crime2').val();
-                if (crime1 && crime2) {
-                    createCorrelationChart(crime1, crime2);
-                }
-            });
 
             // --- Chamada Inicial ---
             await updateMap();
@@ -1529,82 +1582,9 @@
             console.error("ERRO FATAL NA INICIALIZAÇÃO:", e);
             $('body').html('<h1>Ocorreu um erro fatal ao carregar a aplicação. Verifique o console.</h1>');
         }
+        
     });
-async function loadAndShowDashboards() {
-    const container = $('#dashboard-list-container');
-    container.html('<p>Carregando dashboards...</p>'); // Mostra feedback
 
-    try {
-        const response = await fetch('/api/dashboards');
-        const dashboards = await response.json();
-
-        if (!response.ok) {
-            throw new Error('Falha ao carregar dashboards.');
-        }
-
-        container.empty(); // Limpa o container
-
-        if (dashboards.length === 0) {
-            container.html('<p style="text-align: center; padding: 20px;">Nenhum dashboard encontrado. Crie um novo para começar!</p>');
-            return;
-        }
-
-        // Cria o HTML para cada dashboard
-        dashboards.forEach(dash => {
-            const dashboardCard = `
-                <div class="dashboard-card" data-id="${dash.id}">
-                    <div class="dashboard-info">
-                        <strong class="dashboard-name">${dash.name}</strong>
-                        <p class="dashboard-desc">${dash.description || 'Sem descrição.'}</p>
-                    </div>
-                    <div class="dashboard-actions">
-                        <button class="load-dashboard-btn">Carregar</button>
-                        <button class="delete-dashboard-btn">Excluir</button>
-                    </div>
-                </div>
-            `;
-            container.append(dashboardCard);
-        });
-
-    } catch (error) {
-        console.error("Erro ao carregar dashboards:", error);
-        container.html(`<p style="color: red;">${error.message}</p>`);
-    }
-}
-
-// Abre o modal da biblioteca e carrega os dados
-$('#task-library-btn').on('click', function() {
-    $('#library-modal').show().draggable({ handle: ".chart-popup-header" });
-    loadAndShowDashboards(); // Chama a função para popular a lista
-});
-
-// Fecha o modal da biblioteca
-$('#library-modal .close-btn').on('click', function() {
-    $('#library-modal').hide();
-});
-
-// --- Gatilhos para os botões DENTRO da lista de dashboards ---
-// Usamos delegação de eventos porque os botões são criados dinamicamente
-
-// Gatilho para o botão "Carregar"
-$('#dashboard-list-container').on('click', '.load-dashboard-btn', function() {
-    const card = $(this).closest('.dashboard-card');
-    const dashId = card.data('id');
-    const dashName = card.find('.dashboard-name').text();
-    alert(`Funcionalidade "Carregar Dashboard" (ID: ${dashId}) a ser implementada!`);
-    // Aqui virá a lógica para carregar um dashboard
-});
-
-// Gatilho para o botão "Excluir"
-$('#dashboard-list-container').on('click', '.delete-dashboard-btn', function() {
-    const card = $(this).closest('.dashboard-card');
-    const dashId = card.data('id');
-    const dashName = card.find('.dashboard-name').text();
-    if (confirm(`Tem certeza que deseja excluir o dashboard "${dashName}"?`)) {
-        alert(`Funcionalidade "Excluir Dashboard" (ID: ${dashId}) a ser implementada!`);
-        // Aqui virá a lógica para chamar a API de exclusão
-    }
-});
 </script>
 
 
@@ -1623,6 +1603,65 @@ $('#dashboard-list-container').on('click', '.delete-dashboard-btn', function() {
         </div>
     </div>
 </div>
+<div id="charts-workshop-modal" class="chart-popup" style="display: none; width: 700px; height: 500px;">
+    <div class="chart-popup-header">
+        <span class="title">Oficina de Gráficos</span>
+        <div class="actions">
+            <span class="close-btn">&times;</span>
+        </div>
+    </div>
+    <div class="chart-popup-content" style="display: flex; flex-direction: column;">
+        <div id="charts-workshop-toolbar" style="margin-bottom: 15px;">
+            <button id="add-new-chart-btn" style="padding: 8px 12px; font-weight: bold;">+ Nova Visualização</button>
+        </div>
+        <div id="active-charts-container" style="flex-grow: 1; background-color: #f5f5f5; border-radius: 4px; padding: 10px; overflow-y: auto;">
+            <p style="text-align: center; color: #888;">Nenhum gráfico ativo. Clique em "+ Nova Visualização" para começar.</p>
+        </div>
+    </div>
+</div>
+<!-- Modal para Configurar um Novo Gráfico -->
+<div id="chart-config-modal" class="chart-popup" style="display: none; width: 500px; height: auto;">
+    <div class="chart-popup-header">
+        <span class="title">Configurar Nova Visualização</span>
+        <div class="actions">
+            <span class="close-btn">&times;</span>
+        </div>
+    </div>
+    <div class="chart-popup-content">
+        <!-- Passo 1: Escolher o tipo de gráfico -->
+        <div id="chart-config-step1">
+            <p><strong>Passo 1:</strong> Escolha o tipo de visualização</p>
+            <div id="chart-type-selection" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="chart-type-btn" data-chart-type="timeseries">📈 Série Temporal</button>
+                <button class="chart-type-btn" data-chart-type="bar">📊 Contagem por Categoria</button>
+                <button class="chart-type-btn" data-chart-type="pie">🍕 Proporção (Pizza)</button>
+                <button class="chart-type-btn" data-chart-type="histogram">📉 Histograma Numérico</button>
+                <button class="chart-type-btn" data-chart-type="scatter">✨ Correlação (Dispersão)</button>
+            </div>
+        </div>
+
+        <!-- Passo 2: Mapear as colunas (será preenchido pelo JS) -->
+        <div id="chart-config-step2" style="display: none; margin-top: 20px;">
+            <p><strong>Passo 2:</strong> Mapeie as colunas necessárias</p>
+            <div id="column-mapping-container">
+                <!-- O JS vai inserir os <select> aqui -->
+            </div>
+            <div id="chart-options-container" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                <p><strong>Opções de Visualização:</strong></p>
+                <div class="checkbox-list">
+                    <li>
+                        <label>
+                            <input type="checkbox" id="log-scale-checkbox">
+                            Usar escala logarítmica (para visualizar grandes diferenças)
+                        </label>
+                    </li>
+                </div>
+            </div>
+            <button id="generate-chart-btn" style="width: 100%; padding: 10px; margin-top: 20px;">Gerar Gráfico</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 
